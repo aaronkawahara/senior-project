@@ -3,5 +3,3 @@ members = [
     "host-target-tests",
     "xtask",
 ]
-
-[dependencies]
