@@ -4,3 +4,4 @@ version = "0.1.0"
 name = "lcd"
 
 [dependencies]
+embedded-graphics = "0.6.2"
