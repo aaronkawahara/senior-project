@@ -1,1 +1,36 @@
 #on-target testing
+[package]
+authors = ["Aaron Kawahara"]
+name = "self-tests"
+publish = false
+edition = "2018"
+version = "0.1.0"
+
+# copied from ferrous hal testing
+# NOTE `[[test]].harness` is required for *each*
+# file in `tests/*.rs
+[[test]]
+name = "gpio-input-floating"
+harness = false # don't use the standard harness (`test` crate)
+
+[dev-dependencies]
+defmt = "0.2.1"
+defmt-rtt = "0.2.0"
+defmt-test = "0.2.1"
+stm32l4xx-hal = { version = "0.6.0", features = ["stm32l4x5"] }
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+#board = { path = "../board" }
+
+[features]
+default = ['defmt-trace']
+# these features are required by defmt
+defmt-default = []
+defmt-trace = []
+defmt-debug = []
+defmt-info = []
+defmt-warn = []
+defmt-error = []
+
+#[profile.dev]
+# highly recommended! it speeds up running the test suite
+#opt-level = "s"

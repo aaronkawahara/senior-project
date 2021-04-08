@@ -4,3 +4,15 @@ members = [
     "board",
     "self-tests",
 ]
+
+[profile.dev]
+codegen-units = 1
+incremental = false
+lto = 'fat'
+opt-level = 's'
+
+[profile.test]
+codegen-units = 1
+incremental = false
+lto = 'fat'
+opt-level = 's'

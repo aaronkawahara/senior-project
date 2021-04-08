@@ -2,16 +2,19 @@
 [package]
 authors = ["Aaron Kawahara"]
 version = "0.1.0"
-name = "game-dude"
+edition = "2018"
+name = "app"
 
 [[bin]]
-name = "game-dude"
+name = "app"
 bench = false
 doctest = false
 test = false
 
 [dependencies]
 board = { path = "../board" }
+button = { path = "../../button" }
+lcd = { path = "../../lcd" }
 cortex-m-rtic = "0.5.6"
 defmt = "0.2.1"
 defmt-rtt = "0.2.0"

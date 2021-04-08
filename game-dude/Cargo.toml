@@ -1,5 +1,6 @@
 [workspace]
 members = [
-    "host-target-tests",
+    "lcd",
+    "button",
     "xtask",
 ]

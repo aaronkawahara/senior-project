@@ -1,0 +1,10 @@
+[package]
+authors = ["Aaron Kawahara"]
+edition = "2018"
+name = "xtask"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+anyhow = "1.0.40"
+xshell = "0.1.9"
