@@ -2,11 +2,15 @@
 // note: create new folder for each peripheral/system ex) lcd, buttons, etc.
 
 pub struct Board {
-    // peripherals
+    
 }
 
 impl Board {
-    pub fn init(/*peripherals*/) {
+    pub fn init(/*peripherals*/) -> Self {
+        /* do initialization */
 
+        Self {
+            /* return board struct */
+        }
     }
 }
