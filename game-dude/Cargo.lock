@@ -43,6 +43,7 @@ name = "lcd"
 version = "0.1.0"
 dependencies = [
  "embedded-graphics",
+ "embedded-hal",
 ]
 
 [[package]]
