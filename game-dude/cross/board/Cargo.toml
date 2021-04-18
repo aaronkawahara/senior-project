@@ -12,7 +12,8 @@ test = false
 
 [dependencies]
 defmt = "0.2.1"
-stm32l4xx-hal = { version = "0.6.0", features = ["stm32l4x5"] }
+stm32l4xx-hal = { path = "../../stm32l4xx-hal", features = ["stm32l4x5"] }
+lcd = { path = "../../lcd" }
 
 [features]
 stm32l4x5 = []
