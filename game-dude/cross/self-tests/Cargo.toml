@@ -17,9 +17,12 @@ harness = false # don't use the standard harness (`test` crate)
 defmt = "0.2.1"
 defmt-rtt = "0.2.0"
 defmt-test = "0.2.1"
-stm32l4xx-hal = { version = "0.6.0", features = ["stm32l4x5"] }
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 board = { path = "../board" }
+
+[dev-dependencies.stm32l4]
+features = [ "stm32l4p5", "rt" ]
+path = "../../stm32l4"
 
 [features]
 default = ['defmt-trace']

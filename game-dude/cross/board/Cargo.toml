@@ -10,13 +10,15 @@ bench = false
 doctest = false
 test = false
 
+[dependencies.stm32l4]
+path = "../../stm32l4"
+features = ["stm32l4p5", "rt"]
+
 [dependencies]
 defmt = "0.2.1"
-stm32l4xx-hal = { path = "../../stm32l4xx-hal", features = ["stm32l4x5"] }
 lcd = { path = "../../lcd" }
 
 [features]
-stm32l4x5 = []
 defmt-default = []
 defmt-trace = []
 defmt-debug = []
