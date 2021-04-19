@@ -24,4 +24,3 @@ pub use self::generic::*;
 
 #[cfg(feature = "stm32l4p5")]
 pub mod stm32l4p5;
-
