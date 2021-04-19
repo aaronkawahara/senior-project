@@ -1,13 +1,7 @@
 #![no_std]
 // Board/peripheral initialization
 // note: create new folder for each peripheral/system ex) lcd, buttons, etc.
-use stm32l4xx_hal::{
-    prelude::*,
-    stm32,
-    rcc,
-    // pwr::Pwr,
-    // flash,
-};
+use stm32l4::stm32l4p5;
 use lcd::Lcd;
 
 pub struct Board {
@@ -19,33 +13,33 @@ pub const MAX_SYSCLK: u32 = 120_000_000;
 
 impl Board {
     pub fn init(/*peripherals*/) -> Self {
-        let peripherals = stm32::Peripherals::take().unwrap();
-        let mut rcc = peripherals.RCC.constrain();
-        let mut flash = peripherals.FLASH.constrain();
-        let mut pwr = peripherals.PWR.constrain(&mut rcc.apb1r1);
+        let peripherals = stm32l4p5::Peripherals::take().unwrap();
+        // let mut rcc = peripherals.RCC.constrain();
+        // let mut flash = peripherals.FLASH.constrain();
+        // let mut pwr = peripherals.PWR.constrain(&mut rcc.apb1r1);
 
         // pll = (src_clk / input_divider) * multiplier / output_divider
         // multiplier = pll * input_divider * output_divider / src_clk
         // mutlipier = 80Mhz(max pll) * 1 * 2 / 16Mhz (max pll input)
         // multiplier = 160Mhz / 16Mhz = 10
-        let input_divider = 1;
-        let multiplier = 10;
-        let pll_config = rcc::PllConfig::new(
-            input_divider,
-            multiplier,
-             rcc::PllDivider::Div2
-        );
+        // let input_divider = 1;
+        // let multiplier = 10;
+        // let pll_config = rcc::PllConfig::new(
+        //     input_divider,
+        //     multiplier,
+        //      rcc::PllDivider::Div2
+        // );
 
-        let clocks = rcc
-            .cfgr
-            .msi(rcc::MsiFreq::RANGE48M)
-            .pll_source(rcc::PllSource::HSI16)
-            .sysclk_with_pll(MAX_SYSCLK, pll_config)
-            .pclk1(MAX_SYSCLK)
-            .pclk2(MAX_SYSCLK)
-            .freeze(&mut flash.acr, &mut pwr);
+        // let clocks = rcc
+        //     .cfgr
+        //     .msi(rcc::MsiFreq::RANGE48M)
+        //     .pll_source(rcc::PllSource::HSI16)
+        //     .sysclk_with_pll(MAX_SYSCLK, pll_config)
+        //     .pclk1(MAX_SYSCLK)
+        //     .pclk2(MAX_SYSCLK)
+        //     .freeze(&mut flash.acr, &mut pwr);
 
-        let pllsai1 = stm32::rcc::pllsai2cfgr::PLL;
+        // let pllsai1 = stm32::rcc::pllsai2cfgr::PLL;
 
         // Board::init_lcd(&mut rcc);
 
