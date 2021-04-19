@@ -3,9 +3,9 @@ use core::ops::Deref;
 #[cfg(feature = "rt")]
 pub use cortex_m_rt::interrupt;
 #[allow(unused_imports)]
-use generic::*;
+use crate::generic::*;
 #[doc = "Common register and bit access and modify traits"] 
-pub mod generic ;
+/*pub mod generic ;*/
 #[cfg(feature = "rt")]
 extern "C" {
     fn WWDG();
