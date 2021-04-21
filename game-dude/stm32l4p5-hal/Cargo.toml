@@ -1,0 +1,22 @@
+[package]
+name = "stm32l4p5-hal"
+version = "0.1.0"
+authors = ["Aaron Kawahara"]
+edition = "2018"
+
+[dependencies]
+cortex-m = "0.7.2"
+nb = "1.0.0"
+
+[dependencies.stm32l4]
+path = "../stm32l4"
+features = [ "stm32l4p5", "rt" ]
+
+[dependencies.embedded-hal]
+version = "0.2.4"
+features = [ "unproven" ]
+
+[dependencies.cast]
+version = "0.2.2"
+default-features = false
+
