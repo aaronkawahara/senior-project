@@ -7,7 +7,7 @@ use panic_probe as _;
 #[defmt_test::tests]
 mod tests {
     use board::Board;
-    use defmt;//::{assert_eq, unwrap};
+    use defmt;
 
     #[init]
     fn init() -> Board {
@@ -15,7 +15,7 @@ mod tests {
     }
 
     #[test]
-    fn confirm_rcc_config(board: &mut Board) {
+    fn confirm_rcc_config(_board: &mut Board) {
         assert!(true);
     }
 }
