@@ -62,7 +62,7 @@ version = "0.1.0"
 dependencies = [
  "defmt",
  "lcd",
- "stm32l4",
+ "stm32l4p5-hal",
 ]
 
 [[package]]
@@ -77,6 +77,15 @@ name = "byteorder"
 version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
+
+[[package]]
+name = "cast"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc38c385bfd7e444464011bb24820f40dd1c76bcdfa1b78611cb7c2e5cafab75"
+dependencies = [
+ "rustc_version",
+]
 
 [[package]]
 name = "cortex-m"
@@ -397,7 +406,6 @@ dependencies = [
  "defmt-rtt",
  "defmt-test",
  "panic-probe",
- "stm32l4",
 ]
 
 [[package]]
@@ -444,9 +452,20 @@ name = "stm32l4"
 version = "0.13.0"
 dependencies = [
  "bare-metal",
- "cortex-m 0.6.7",
+ "cortex-m 0.7.2",
  "cortex-m-rt",
  "vcell",
+]
+
+[[package]]
+name = "stm32l4p5-hal"
+version = "0.1.0"
+dependencies = [
+ "cast",
+ "cortex-m 0.7.2",
+ "embedded-hal",
+ "nb 1.0.0",
+ "stm32l4",
 ]
 
 [[package]]

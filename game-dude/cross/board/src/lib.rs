@@ -1,7 +1,7 @@
 #![no_std]
 // Board/peripheral initialization
 // note: create new folder for each peripheral/system ex) lcd, buttons, etc.
-use stm32l4::stm32l4p5;
+use stm32l4p5_hal as hal;
 use lcd::Lcd;
 
 pub struct Board {
@@ -13,7 +13,7 @@ pub const MAX_SYSCLK: u32 = 120_000_000;
 
 impl Board {
     pub fn init(/*peripherals*/) -> Self {
-        let peripherals = stm32l4p5::Peripherals::take().unwrap();
+        let peripherals = hal::pac::Peripherals::take().unwrap();
         // let mut rcc = peripherals.RCC.constrain();
         // let mut flash = peripherals.FLASH.constrain();
         // let mut pwr = peripherals.PWR.constrain(&mut rcc.apb1r1);
