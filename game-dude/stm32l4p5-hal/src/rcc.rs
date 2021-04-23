@@ -648,19 +648,8 @@ impl CFGR {
             .unwrap_or((0b0000, 1));
 
         let hclk = sysclk / hpre_div;
+
         assert!(hclk <= sysclk);
-
-        if sysclk > MAX_NORMAL_SYSCLK {
-            // divide sysclk by 2 before switching to higher freq
-            rcc.cfgr.modify(|_, w| unsafe {
-                w.hpre().bits(0b1000)
-            });
-            while rcc.cfgr.read().hpre().bits() != (0b1000) {}
-
-            // enabel power boost for higher freq
-            pwr.cr5.enable_boost();
-            while pwr.cr5.reg().read().r1mode().bit() != false {}
-        }
 
         let (ppre1_bits, ppre1) = self
             .pclk1
@@ -696,6 +685,21 @@ impl CFGR {
 
         assert!(pclk2 <= sysclk);
 
+        if sysclk > MAX_NORMAL_SYSCLK {
+            // divide sysclk by 2 before switching to higher freq
+            rcc.cfgr.modify(|_, w| unsafe {
+                w.hpre().bits(0b1000)
+            });
+            while rcc.cfgr.read().hpre().bits() != (0b1000) {}
+
+            // enabel power boost for higher freq
+            pwr.cr5.enable_boost();
+            while pwr.cr5.reg().read().r1mode().bit() != false {}
+        } else {
+            pwr.cr5.disable_boost();
+            while pwr.cr5.reg().read().r1mode().bit() != true {}
+        }
+
         // adjust flash wait states
         unsafe {
             acr.acr().write(|w| {
@@ -727,12 +731,12 @@ impl CFGR {
 
             assert!(r <= 8); // Allowed max output divider
             assert!(pllconf.n >= 8); // Allowed min multiplier
-            assert!(pllconf.n <= 86); // Allowed max multiplier
-            assert!(clock_speed >= 4_000_000); // VCO input clock min
-            assert!(clock_speed <= 16_000_000); // VCO input clock max
+            assert!(pllconf.n <= 127); // Allowed max multiplier
+            assert!(clock_speed >= 2_660_000); // VCO input clock min
+            assert!(clock_speed <= 8_000_000); // VCO input clock max
             assert!(vco >= 64_000_000); // VCO output min
             assert!(vco <= 334_000_000); // VCO output max
-            assert!(output_clock <= 80_000_000); // Max output clock
+            assert!(output_clock <= 120_000_000); // Max output clock
 
             // use PLL as source
             sysclk_src_bits = 0b11;
@@ -790,7 +794,7 @@ impl CFGR {
         }
 
         while rcc.cfgr.read().sws().bits() != sysclk_src_bits {}
-        
+
         //
         // 3. Shutdown unused clocks that have auto-started
         //
