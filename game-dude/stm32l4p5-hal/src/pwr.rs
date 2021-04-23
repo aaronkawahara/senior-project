@@ -8,6 +8,7 @@ pub struct Pwr {
     pub cr2: CR2,
     pub cr3: CR3,
     pub cr4: CR4,
+    pub cr5: CR5,
 }
 
 /// Extension trait that constrains the `PWR` peripheral
@@ -25,6 +26,10 @@ impl PwrExt for PWR {
             cr2: CR2 { _0: () },
             cr3: CR3 { _0: () },
             cr4: CR4 { _0: () },
+            cr5: CR5 { 
+                _0: (),
+                boost_enabled: false,
+            },
         }
     }
 }
@@ -79,5 +84,33 @@ impl CR4 {
     pub(crate) fn reg(&mut self) -> &pwr::CR4 {
         // NOTE(unsafe) this proxy grants exclusive access to this register
         unsafe { &(*PWR::ptr()).cr4 }
+    }
+}
+
+// enum for r1_boost?
+
+/// CR1
+pub struct CR5 {
+    _0: (),
+    boost_enabled: bool,
+}
+
+impl CR5 {
+    // TODO remove `allow`
+    #[allow(dead_code)]
+    pub(crate) fn reg(&mut self) -> &pwr::CR5 {
+        // NOTE(unsafe) this proxy grants exclusive access to this register
+        unsafe { &(*PWR::ptr()).cr5 }
+    }
+
+    pub fn enable_boost(&mut self) {
+        self.reg().write(|w| { w.r1mode().bit(false) });
+        self.boost_enabled = true;
+    }
+
+    pub fn disable_boost(&mut self) {
+        // let pwr = unsafe { &*PWR::ptr() };
+        self.reg().write(|w| { w.r1mode().bit(true) });
+        self.boost_enabled = false;
     }
 }
