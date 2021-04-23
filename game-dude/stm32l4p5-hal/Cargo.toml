@@ -8,9 +8,8 @@ edition = "2018"
 cortex-m = "0.7.2"
 nb = "1.0.0"
 
-[dependencies.stm32l4]
-path = "../stm32l4"
-features = [ "stm32l4p5", "rt" ]
+[dependencies.stm32l4p5-pac]
+path = "../stm32l4p5-pac"
 
 [dependencies.embedded-hal]
 version = "0.2.4"
@@ -19,4 +18,3 @@ features = [ "unproven" ]
 [dependencies.cast]
 version = "0.2.2"
 default-features = false
-
