@@ -5,7 +5,7 @@ pub use nb;
 pub use nb::block;
 pub use stm32l4p5_pac as pac;
 pub use pac as stm32;
-pub use crate::pac::Interrupt;
+pub use crate::pac::interrupt;
 
 // peripheral exports
 pub mod gpio;
