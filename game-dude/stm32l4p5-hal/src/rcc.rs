@@ -1,4 +1,7 @@
-use crate::stm32::{rcc, RCC};
+use crate::stm32::{
+    rcc,
+    RCC,
+};
 use cast::u32;
 
 use crate::flash::ACR;
@@ -337,6 +340,9 @@ pub enum ClockSecuritySystem {
 }
 
 const HSI: u32 = 16_000_000; // Hz
+// 120Mhz is achievable if PWR_CR5 reg is set to boost mode, otherwise 80Mhz is max
+pub const MAX_BOOST_SYSCLK: u32 = 120_000_000;
+pub const MAX_NORMAL_SYSCLK: u32 = 80_000_000;
 
 /// Clock configuration
 pub struct CFGR {
@@ -622,7 +628,7 @@ impl CFGR {
 
         let sysclk = self.sysclk.unwrap_or(HSI);
 
-        assert!(sysclk <= 80_000_000);
+        assert!(sysclk <= MAX_BOOST_SYSCLK);
 
         let (hpre_bits, hpre_div) = self
             .hclk
@@ -642,8 +648,19 @@ impl CFGR {
             .unwrap_or((0b0000, 1));
 
         let hclk = sysclk / hpre_div;
-
         assert!(hclk <= sysclk);
+
+        if sysclk > MAX_NORMAL_SYSCLK {
+            // divide sysclk by 2 before switching to higher freq
+            rcc.cfgr.modify(|_, w| unsafe {
+                w.hpre().bits(0b1000)
+            });
+            while rcc.cfgr.read().hpre().bits() != (0b1000) {}
+
+            // enabel power boost for higher freq
+            pwr.cr5.enable_boost();
+            while pwr.cr5.reg().read().r1mode().bit() != false {}
+        }
 
         let (ppre1_bits, ppre1) = self
             .pclk1
@@ -682,17 +699,21 @@ impl CFGR {
         // adjust flash wait states
         unsafe {
             acr.acr().write(|w| {
-                w.latency().bits(if hclk <= 16_000_000 {
-                    0b000
-                } else if hclk <= 32_000_000 {
-                    0b001
-                } else if hclk <= 48_000_000 {
-                    0b010
-                } else if hclk <= 64_000_000 {
-                    0b011
-                } else {
-                    0b100
-                })
+                w.latency().bits(
+                    if hclk <= 20_000_000 {
+                        0b000
+                    } else if hclk <= 40_000_000 {
+                        0b001
+                    } else if hclk <= 60_000_000 {
+                        0b010
+                    } else if hclk <= 80_000_000 {
+                        0b011
+                    } else if hclk <= 100_000_000 {
+                        0b100
+                    } else {
+                        0b101
+                    }
+                )
             })
         }
 
@@ -769,7 +790,7 @@ impl CFGR {
         }
 
         while rcc.cfgr.read().sws().bits() != sysclk_src_bits {}
-
+        
         //
         // 3. Shutdown unused clocks that have auto-started
         //
@@ -952,3 +973,75 @@ impl Clocks {
         self.sysclk
     }
 }
+
+// PLLSAI2 configuration
+pub struct PLLSAI2CFGR {
+    sai2p_div: Option<u8>,
+    lcd_div: Option<rcc::pllsai2cfgr::PLLSAI2R_A>,
+    lcd_enabled: bool,
+    dsi_div: Option<rcc::pllsai2cfgr::PLLSAI2Q_A>,
+    dsi_enabled: bool,
+    sai2p: Option<rcc::pllsai2cfgr::PLLSAI2P_A>,
+    sai2p_enabled: bool,
+    sai2n_mult: Option<u8>,
+    sai2m_div: Option<u8>,
+}
+
+impl PLLSAI2CFGR {
+    pub fn sai2p_div(mut self, div: u8) -> Self {
+        self.sai2p_div = Some(div);
+
+        self
+    }
+
+    pub fn lcd_div(mut self, div: rcc::pllsai2cfgr::PLLSAI2R_A) -> Self{
+        self.lcd_div = Some(div);
+        
+        self
+    }
+
+    pub fn lcd_enabled(mut self, enabled: bool) -> Self {
+        self.lcd_enabled = enabled;
+
+        self
+    }
+    
+    pub fn dsi_div(mut self, div: rcc::pllsai2cfgr::PLLSAI2Q_A) -> Self {
+        self.dsi_div = Some(div);
+
+        self
+    }
+
+    pub fn dsi_enabled(mut self, enabled: bool) -> Self {
+        self.dsi_enabled = enabled;
+
+        self
+    }
+
+    pub fn sai2p(mut self, div: rcc::pllsai2cfgr::PLLSAI2P_A) {
+        self.sai2p = Some(div);
+    }
+
+    pub fn sai2p_enabled(mut self, enabled: bool) -> Self {
+        self.sai2p_enabled = enabled;
+
+        self
+    }
+
+    pub fn sai2n_mult(mut self, mult: u8) -> Self {
+        self.sai2n_mult = Some(mult);
+
+        self
+    }
+
+    pub fn sai2m_div(mut self, div: u8) -> Self {
+        self.sai2m_div = Some(div);
+
+        self
+    }
+
+    pub fn freeze() {
+        
+    }
+}
+
