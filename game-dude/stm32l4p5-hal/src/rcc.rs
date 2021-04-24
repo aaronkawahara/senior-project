@@ -87,6 +87,17 @@ impl RccExt for RCC {
                 pll_source: None,
                 pll_config: None,
             },
+            pllsai2cfgr: PLLSAI2CFGR {
+                sai2p_div: None,
+                lcd_div: None,
+                lcd_enabled: false,
+                dsi_div: None,
+                dsi_enabled: false,
+                sai2p: None,
+                sai2p_enabled: false,
+                sai2n_mult: None,
+                sai2m_div: None,
+            },
         }
     }
 }
@@ -115,6 +126,8 @@ pub struct Rcc {
     pub crrcr: CRRCR,
     /// Peripherals independent clock configuration register
     pub ccipr: CCIPR,
+    // PLLSAI2 configuration register
+    pub pllsai2cfgr: PLLSAI2CFGR,
 }
 
 /// CSR Control/Status Register
@@ -1044,8 +1057,78 @@ impl PLLSAI2CFGR {
         self
     }
 
-    pub fn freeze() {
-        
+    pub fn freeze(&self) {
+        let rcc = unsafe { &*RCC::ptr() };
+
+        // disable pllsai2ON in rcc.cr
+        rcc.cr.modify(|_, w| {
+            w.pllsai2on().clear_bit()
+        });
+
+        // wait for pllsai2rdy is cleared
+        while rcc.cr.read().pllsai2rdy() == true {}
+
+        // make field changes
+        if let Some(sai2p_div) = self.sai2p_div {
+            rcc.pllsai2cfgr.modify(|_, w| {
+                w.pllsai2pdiv().bits(sai2p_div)
+            });
+        }
+
+        if let Some(lcd_div) = self.lcd_div {
+            rcc.pllsai2cfgr.modify(|_, w| {
+                w.pllsai2r().variant(lcd_div)
+            })
+        }
+
+        if let Some(dsi_div) = self.dsi_div {
+            rcc.pllsai2cfgr.modify(|_, w| {
+                w.pllsai2q().variant(dsi_div)
+            })
+        }
+
+        if let Some(sai2p) = self.sai2p {
+            rcc.pllsai2cfgr.modify(|_, w| {
+                w.pllsai2p().variant(sai2p)
+            })
+        }
+
+        if let Some(sai2n_mult) = self.sai2n_mult {
+            rcc.pllsai2cfgr.modify(|_, w| unsafe {
+                w.pllsai2n().bits(sai2n_mult)
+            })
+        }
+
+        if let Some(sai2m_div) = self.sai2m_div {
+            rcc.pllsai2cfgr.modify(|_, w| unsafe {
+                w.pllsai2m().bits(sai2m_div)
+            })
+        }
+
+        // enable pllsai2ON in rcc.cr
+        rcc.cr.modify(|_, w| {
+            w.pllsai2on().set_bit()
+        });
+
+        // enable the desired pllsai2 outputs with pllsai2(pen, qen, ren)
+        if self.lcd_enabled != rcc.pllsai2cfgr.read().pllsai2ren().bit() {
+            rcc.pllsai2cfgr.modify(|_, w| {
+                w.pllsai2ren().bit(self.lcd_enabled)
+            })
+        }
+
+        if self.dsi_enabled != rcc.pllsai2cfgr.read().pllsai2qen().bit() {
+            rcc.pllsai2cfgr.modify(|_, w| {
+                w.pllsai2qen().bit(self.dsi_enabled)
+            })
+        }
+
+        if self.sai2p_enabled != rcc.pllsai2cfgr.read().pllsai2pen().bit() {
+            rcc.pllsai2cfgr.modify(|_, w| {
+                w.pllsai2pen().bit(self.sai2p_enabled)
+            })
+        }
+        // pll output < 120MHz
     }
 }
 
