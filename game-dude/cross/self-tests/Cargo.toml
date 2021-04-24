@@ -10,7 +10,7 @@ version = "0.1.0"
 # NOTE `[[test]].harness` is required for *each*
 # file in `tests/*.rs
 [[test]]
-name = "lcd"
+name = "board"
 harness = false # don't use the standard harness (`test` crate)
 
 [dev-dependencies]
