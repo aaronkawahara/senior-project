@@ -3,4 +3,5 @@ members = [
     "lcd",
     "button",
     "xtask",
+    "stm32l4p5-hal",
 ]

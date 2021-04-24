@@ -4,6 +4,12 @@ version = 3
 
 [[package]]
 name = "aligned"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d39da9b88ae1a81c03c9c082b8db83f1d0e93914126041962af61034ab44c4a5"
+
+[[package]]
+name = "aligned"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c19796bd8d477f1a9d4ac2465b464a8b1359474f06a96bb3cda650b4fca309bf"
@@ -89,11 +95,23 @@ dependencies = [
 
 [[package]]
 name = "cortex-m"
+version = "0.5.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59971a5cf4dacacaf738dd9d8660875118fce790f800f661893eb20894c1d622"
+dependencies = [
+ "aligned 0.2.0",
+ "bare-metal",
+ "cortex-m 0.6.7",
+ "volatile-register",
+]
+
+[[package]]
+name = "cortex-m"
 version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9075300b07c6a56263b9b582c214d0ff037b00d45ec9fde1cc711490c56f1bb9"
 dependencies = [
- "aligned",
+ "aligned 0.3.4",
  "bare-metal",
  "bitfield",
  "cortex-m 0.7.2",
@@ -448,16 +466,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
-name = "stm32l4"
-version = "0.13.0"
-dependencies = [
- "bare-metal",
- "cortex-m 0.7.2",
- "cortex-m-rt",
- "vcell",
-]
-
-[[package]]
 name = "stm32l4p5-hal"
 version = "0.1.0"
 dependencies = [
@@ -465,7 +473,16 @@ dependencies = [
  "cortex-m 0.7.2",
  "embedded-hal",
  "nb 1.0.0",
- "stm32l4",
+ "stm32l4p5-pac",
+]
+
+[[package]]
+name = "stm32l4p5-pac"
+version = "0.1.0"
+dependencies = [
+ "bare-metal",
+ "cortex-m 0.5.11",
+ "vcell",
 ]
 
 [[package]]
