@@ -3,7 +3,6 @@ use crate::stm32::{
     LTDC,
 };
 
-
 pub trait LtdcExt {
     fn constrain(self) -> Ltdc;
 }
@@ -59,6 +58,43 @@ pub struct Ltdc {
     pub cdsr: CDSR,
     // Cluster LAYER%s, containing L?CR, L?WHPCR, L?WVPCR, L?CKCR, L?PFCR, L?CACR, L?DCCR, L?BFCR, L?CFBAR, L?CFBLR, L?CFBLNR, L?CLUTWR"]
     pub layer1: LAYER,
+}
+
+impl Ltdc {
+    // enable LTDC clk in RCC_CR The LTDC clock is generated from a specific PLL (PLLSAI2) RCC_PLLCFGR
+    // config pixel clk 
+    // RCC stuff
+
+    // config synchronous timings for HSYNC + VSYNC
+    // SSCR
+    // BPCR
+    // AWCR
+    // TWCR
+
+    // config synchronous signals and clk polarity
+    // LTDC_GCR
+
+    // config background color 
+    // LTDC_BCCR
+
+    // config interrupts in 
+    // LTDC_IER
+    // LTDC_LIPCR
+
+    // config l1 params
+    // Lx... 
+
+    // enable l1 and CLUT in 
+    // LTDC_LxCR
+
+    // dithering and color keying optional
+    // GCR LxCKR
+
+    // reload shadow registers to active register
+    // LTDC_SRCR
+
+    // enable LCD-TFT controller
+    // LTDC_GCR
 }
 
 pub struct SSCR {
