@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2018"
 name = "lcd"
 
+[lib]
+bench = false
+doctest = false
+test = false
+
 [dependencies]
 embedded-hal = "0.2.4"
 embedded-graphics = "0.6.2"

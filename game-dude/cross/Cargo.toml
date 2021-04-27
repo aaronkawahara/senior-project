@@ -2,22 +2,18 @@
 members = [
     "app",
     "board",
+    "lcd",
     "self-tests",
 ]
-
-[profile.release]
-debug = 1
 
 [profile.dev]
 codegen-units = 1
 incremental = false
 lto = 'fat'
-debug = 1
 opt-level = 's'
 
 [profile.test]
 codegen-units = 1
 incremental = false
 lto = 'fat'
-debug = 1
 opt-level = 's'
