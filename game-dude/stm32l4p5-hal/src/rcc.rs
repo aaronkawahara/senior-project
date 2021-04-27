@@ -265,6 +265,7 @@ impl APB1R1 {
         unsafe { &(*RCC::ptr()).apb1enr1 }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn rstr(&mut self) -> &rcc::APB1RSTR1 {
         // NOTE(unsafe) this proxy grants exclusive access to this register
         unsafe { &(*RCC::ptr()).apb1rstr1 }
@@ -302,6 +303,7 @@ impl APB2 {
         unsafe { &(*RCC::ptr()).apb2enr }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn rstr(&mut self) -> &rcc::APB2RSTR {
         // NOTE(unsafe) this proxy grants exclusive access to this register
         unsafe { &(*RCC::ptr()).apb2rstr }
@@ -503,9 +505,7 @@ impl CFGR {
                 if lse_cfg.bypass == CrystalBypass::Enable {
                     w.lsebyp().set_bit();
                 } else {
-                    unsafe {
-                        w.lsedrv().bits(0b11);
-                    } // Max drive strength, TODO: should probably be settable
+                    w.lsedrv().bits(0b11);// Max drive strength, TODO: should probably be settable
                 }
 
                 w
