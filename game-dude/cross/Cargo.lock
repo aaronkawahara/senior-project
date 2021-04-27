@@ -26,7 +26,6 @@ dependencies = [
  "cortex-m-rtic",
  "defmt",
  "defmt-rtt",
- "lcd",
 ]
 
 [[package]]

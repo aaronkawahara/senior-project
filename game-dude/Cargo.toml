@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "lcd",
     "button",
     "xtask",
     "stm32l4p5-hal",
+    "stm32l4p5-pac",
 ]
