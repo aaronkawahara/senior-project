@@ -19,6 +19,7 @@ defmt-rtt = "0.2.0"
 defmt-test = "0.2.1"
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 board = { path = "../board" }
+lcd = { path = "../lcd" }
 
 [features]
 default = ['defmt-trace']
