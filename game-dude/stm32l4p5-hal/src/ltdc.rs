@@ -34,10 +34,7 @@ impl LtdcExt for LTDC {
                 den: false,
                 ltdcen: false,
             },
-            srcr: SRCR { 
-                vbr: false,
-                imr: false,
-            },
+            srcr: SRCR { _0: () },
             bccr: BCCR {
                 bcred: None,
                 bcgreen: None,
@@ -56,58 +53,7 @@ impl LtdcExt for LTDC {
             },
             cpsr: CPSR { _0: () },
             cdsr: CDSR { _0: () },
-            layer1: LAYER1 { 
-                cr: L1CR {
-                    cluten: false,
-                    colken: false,
-                    len: false,
-                }, 
-                whpcr: L1WHPCR {
-                    whsppos: None,
-                    whstpos: None,
-                }, 
-                wvpcr: L1WVPCR {
-                    wvsppos: None,
-                    wvstpos: None,
-                },
-                ckcr: L1CKCR {
-                    ckred: None,
-                    ckgreen: None,
-                    ckblue: None,
-                },
-                pfcr: L1PFCR {
-                    pf: None,
-                },
-                cacr: L1CACR {
-                    consta: None,
-                },
-                dccr: L1DCCR {
-                    dcalpha: None,
-                    dcred: None,
-                    dcgreen: None,
-                    dcblue: None,
-                },
-                bfcr: L1BFCR {
-                    bf1: None,
-                    bf2: None,
-                },
-                cfbar: L1CFBAR {
-                    cfbadd: None,
-                },
-                cfblr: L1CFBLR {
-                    cfbp: None,
-                    cfbll: None,
-                },
-                cfblnr: L1CFBLNR {
-                    cfblnbr: None,
-                },
-                clutwr: L1CLUTWR {
-                    clutadd: None,
-                    red: None,
-                    green: None,
-                    blue: None,
-                },
-            },
+            layer1: LAYER1 { clut_filled: false },
         }
     }
 }
@@ -151,7 +97,7 @@ impl Ltdc {
 
     // config synchronous timings for HSYNC + VSYNC
     pub fn config_timings(
-        self,
+        &self,
         hsync_width: u16, 
         vsync_height: u16,
         hbp: u16,
@@ -161,22 +107,29 @@ impl Ltdc {
         screen_width: u16,
         screen_height: u16,
     ) {
+        let ltdc = unsafe { &*LTDC::ptr() };
+
         // TODO delay for stalled register access
-        self.sscr
-            .hsw(hsync_width - 1)
-            .vsh(vsync_height - 1);
+        // TODO update struct values ???
+        ltdc.sscr.modify(|_, w| { 
+            w.hsw().bits(hsync_width - 1);
+            w.vsh().bits(vsync_height - 1)
+        });
+        
+        ltdc.bpcr.modify(|_, w| {
+            w.ahbp().bits(hsync_width + hbp - 1);
+            w.avbp().bits(vsync_height + vbp - 1)
+        });
 
-        self.bpcr
-            .ahbp(hsync_width + hbp - 1)
-            .avbp(vsync_height + vbp - 1);
+        ltdc.awcr.modify(|_, w| {
+            w.aaw().bits(hsync_width + hbp + screen_width - 1);
+            w.aah().bits(vsync_height + vbp + screen_height - 1)
+        });
 
-        self.awcr
-            .aaw(hsync_width + hbp + screen_width - 1)
-            .aah(vsync_height + vbp + screen_height - 1);
-
-        self.twcr
-            .totalw(hsync_width + hbp + screen_width + hfp - 1)
-            .totalh(vsync_height + vbp + screen_height + vfp - 1);
+        ltdc.twcr.modify(|_, w| {
+            w.totalw().bits(hsync_width + hbp + screen_width + hfp - 1);
+            w.totalh().bits(vsync_height + vbp + screen_height + vfp - 1)
+        });
     }
 
     // config synchronous signals and clk polarity
@@ -311,50 +264,52 @@ pub struct GCR {
 }
 
 impl GCR {
-    pub(crate) fn reg(&mut self) -> &ltdc::GCR {
-        unsafe { &(*LTDC::ptr()).gcr }
+    pub fn update_reg(&self) {
+        let gcr = unsafe { &(*LTDC::ptr()).gcr };
+
+        gcr.modify(|_, w| {
+            w.hspol().bit(self.hspol);
+            w.vspol().bit(self.vspol);
+            w.depol().bit(self.depol);
+            w.pcpol().bit(self.pcpol);
+            w.den().bit(self.den);
+            w.ltdcen().bit(self.ltdcen)
+        });
     }
 
-    pub fn hspol(mut self, positive: bool) -> Self {
-        self.reg().modify(|_, w| { w.hspol().bit(positive) });
+    pub fn hspol(&mut self, positive: bool) -> &mut Self {
         self.hspol = positive;
         self
     }
 
-    pub fn vspol(mut self, positive: bool) -> Self {
-        self.reg().modify(|_, w| { w.vspol().bit(positive) });
+    pub fn vspol(&mut self, positive: bool) -> &mut Self {
         self.vspol = positive;
         self
     }
 
-    pub fn depol(mut self, positive: bool) -> Self {
-        self.reg().modify(|_, w| { w.depol().bit(positive) });
+    pub fn depol(&mut self, positive: bool) -> &mut Self {
         self.depol = positive;
         self
     }
 
-    pub fn pcpol(mut self, positive: bool) -> Self {
-        self.reg().modify(|_, w| { w.pcpol().bit(positive) });
+    pub fn pcpol(&mut self, positive: bool) -> &mut Self {
         self.pcpol = positive;
         self
     }
 
-    pub fn den(mut self, enabled: bool) -> Self {
-        self.reg().modify(|_, w| { w.den().bit(enabled)});
+    pub fn den(&mut self, enabled: bool) -> &mut Self {
         self.den = enabled;
         self
     }
 
-    pub fn ltdcen(mut self, enabled: bool) -> Self {
-        self.reg().modify(|_, w| { w.ltdcen().bit(enabled) });
+    pub fn ltdcen(&mut self, enabled: bool) -> &mut Self {
         self.ltdcen = enabled;
         self
     }
 }
 
 pub struct SRCR {
-    vbr: bool,
-    imr: bool,
+    _0: (),
 }
 
 impl SRCR {
@@ -362,16 +317,16 @@ impl SRCR {
         unsafe { &(*LTDC::ptr()).srcr }
     }
 
-    pub fn vbr(mut self, reloaded: bool) -> Self {
-        self.reg().modify(|_, w| { w.vbr().bit(reloaded) });
-        self.vbr = reloaded;
-        self
+    pub fn set_vbr(&mut self) {
+        self.reg().modify(|_, w| {
+            w.vbr().set_bit()
+        });
     }
 
-    pub fn imr(mut self, reloaded: bool) -> Self {
-        self.reg().modify(|_, w| { w.imr().bit(reloaded) });
-        self.imr = reloaded;
-        self
+    pub fn set_imr(&mut self) {
+        self.reg().modify(|_, w| {
+            w.imr().set_bit()
+        })
     }
 }
 
@@ -382,24 +337,27 @@ pub struct BCCR {
 }
 
 impl BCCR {
-    pub(crate) fn reg(&mut self) -> &ltdc::BCCR {
-        unsafe { &(*LTDC::ptr()).bccr }
+    pub fn update_reg(&self) {
+        let bccr = unsafe { &(*LTDC::ptr()).bccr };
+
+        bccr.modify(|_, w| {
+            w.bcred().bits(self.bcred.unwrap_or(0));
+            w.bcgreen().bits(self.bcgreen.unwrap_or(0));
+            w.bcblue().bits(self.bcblue.unwrap_or(0))
+        });
     }
 
     pub fn bcred(mut self, red: u8) -> Self {
-        self.reg().modify(|_, w| { w.bcred().bits(red) });
         self.bcred = Some (red);
         self
     }
 
     pub fn bcgreen(mut self, green: u8) -> Self {
-        self.reg().modify(|_, w| { w.bcgreen().bits(green) });
         self.bcgreen = Some (green);
         self
     }
 
     pub fn bcblue(mut self, blue: u8) -> Self {
-        self.reg().modify(|_, w| { w.bcblue().bits(blue) });
         self.bcblue = Some (blue);
         self
     }
@@ -413,30 +371,33 @@ pub struct IER {
 }
 
 impl IER {
-    pub(crate) fn reg(&mut self) -> &ltdc::IER {
-        unsafe { &(*LTDC::ptr()).ier }
+    pub fn update_reg(&self) {
+        let ier = unsafe { &(*LTDC::ptr()).ier };
+
+        ier.modify(|_, w| {
+            w.rrie().bit(self.rrie);
+            w.terrie().bit(self.terrie);
+            w.fuie().bit(self.fuie);
+            w.lie().bit(self.lie)
+        });
     }
 
-    pub fn rrie(mut self, enabled: bool) -> Self {
-        self.reg().modify(|_, w| { w.rrie().bit(enabled) });
+    pub fn rrie(&mut self, enabled: bool) -> &mut Self {
         self.rrie = enabled;
         self
     }
 
-    pub fn terrie(mut self, enabled: bool) -> Self {
-        self.reg().modify(|_, w| { w.terrie().bit(enabled) });
+    pub fn terrie(&mut self, enabled: bool) -> &mut Self {
         self.terrie = enabled;
         self
     }
 
-    pub fn fuie(mut self, enabled: bool) -> Self {
-        self.reg().modify(|_, w| { w.fuie().bit(enabled) });
+    pub fn fuie(&mut self, enabled: bool) -> &mut Self {
         self.fuie = enabled;
         self
     }
     
-    pub fn lie(mut self, enabled: bool) -> Self {
-        self.reg().modify(|_, w| { w.lie().bit(enabled) });
+    pub fn lie(&mut self, enabled: bool) -> &mut Self {
         self.lie = enabled;
         self
     }
@@ -447,6 +408,7 @@ pub struct ISR {
 }
 
 impl ISR {
+    #[allow(dead_code)]
     pub(crate) fn reg(&mut self) -> &ltdc::ISR {
         unsafe { &(*LTDC::ptr()).isr }
     }
@@ -457,6 +419,7 @@ pub struct ICR {
 }
 
 impl ICR {
+    #[allow(dead_code)]
     pub(crate) fn reg(&mut self) -> &ltdc::ICR {
         unsafe { &(*LTDC::ptr()).icr }
     }
@@ -467,12 +430,15 @@ pub struct LIPCR {
 }
 
 impl LIPCR {
-    pub(crate) fn reg(&mut self) -> &ltdc::LIPCR {
-        unsafe { &(*LTDC::ptr()).lipcr }
+    pub fn update_reg(&self) {
+        let lipcr = unsafe { &(*LTDC::ptr()).lipcr };
+
+        lipcr.modify(|_, w| { 
+            w.lipos().bits(self.lipos.unwrap_or(0)) 
+        });
     }
 
     pub fn lipos(mut self, position: u16) -> Self {
-        self.reg().modify(|_, w| { w.lipos().bits(position) });
         self.lipos = Some(position);
         self
     }
@@ -483,6 +449,7 @@ pub struct CPSR {
 }
 
 impl CPSR {
+    #[allow(dead_code)]
     pub(crate) fn reg(&mut self) -> &ltdc::CPSR {
         unsafe { &(*LTDC::ptr()).cpsr }
     } 
@@ -493,39 +460,102 @@ pub struct CDSR {
 }
 
 impl CDSR {
+    #[allow(dead_code)]
     pub(crate) fn reg(&mut self) -> &ltdc::CDSR {
         unsafe { &(*LTDC::ptr()).cdsr }
     } 
 }
 
 pub struct LAYER1 {
-    cr: L1CR,
-    whpcr: L1WHPCR,
-    wvpcr: L1WVPCR,
-    ckcr: L1CKCR,
-    pfcr: L1PFCR,
-    cacr: L1CACR,
-    dccr: L1DCCR,
-    bfcr: L1BFCR,
-    cfbar: L1CFBAR,
-    cfblr: L1CFBLR,
-    cfblnr: L1CFBLNR,
-    clutwr: L1CLUTWR,
+    clut_filled: bool,
 }
 
 impl LAYER1 {
-    pub fn cr(self) -> L1CR { self.cr }
-    pub fn whpcr(self) -> L1WHPCR { self.whpcr }
-    pub fn wvpcr(self) -> L1WVPCR { self.wvpcr }
-    pub fn ckcr(self) -> L1CKCR { self.ckcr }
-    pub fn pfcr(self) -> L1PFCR { self.pfcr }
-    pub fn cacr(self) -> L1CACR { self.cacr }
-    pub fn dccr(self) -> L1DCCR { self.dccr }
-    pub fn bfcr(self) -> L1BFCR { self.bfcr }
-    pub fn cfbar(self) -> L1CFBAR { self.cfbar }
-    pub fn cfblr(self) -> L1CFBLR { self.cfblr }
-    pub fn cfblnr(self) -> L1CFBLNR { self.cfblnr }
-    pub fn clutwr(self) -> L1CLUTWR { self.clutwr }
+    pub fn config_layer(
+        &self,
+        layer_width: u16,
+        layer_height: u16,
+        pixel_format: ltdc::layer::pfcr::PF_A,
+        buffer_start_address: u32,
+    ) {
+        let ltdc = unsafe { &*LTDC::ptr() };
+
+        ltdc.layer1.whpcr.modify(|_, w| {
+            w.whstpos().bits(0);
+            w.whsppos().bits(layer_width)
+        });
+
+        ltdc.layer1.wvpcr.modify(|_, w| {
+            w.wvstpos().bits(0);
+            w.wvsppos().bits(layer_height)
+        });
+        
+        ltdc.layer1.pfcr.modify(|_, w| {
+            w.pf().variant(pixel_format)
+        });
+
+        ltdc.layer1.cfbar.modify(|_, w| {
+            w.cfbadd().bits(buffer_start_address)
+        });
+
+        let cfbp = layer_width * match pixel_format {
+            ltdc::layer::pfcr::PF_A::ARGB8888 => 4,
+            ltdc::layer::pfcr::PF_A::RGB888 => 3,
+            ltdc::layer::pfcr::PF_A::RGB565 => 2,
+            ltdc::layer::pfcr::PF_A::ARGB1555 => 2,
+            ltdc::layer::pfcr::PF_A::ARGB4444 => 2,
+            ltdc::layer::pfcr::PF_A::L8 => 1,
+            ltdc::layer::pfcr::PF_A::AL44 => 1,
+            ltdc::layer::pfcr::PF_A::AL88 => 2,
+        };
+
+        ltdc.layer1.cfblr.modify(|_, w| {
+            w.cfbp().bits(cfbp);
+            w.cfbll().bits(cfbp + 3)
+        });
+
+        ltdc.layer1.cfblnr.modify(|_, w| {
+            w.cfblnbr().bits(layer_height)
+        });
+
+
+    }
+
+    pub fn fill_clut_l8(&mut self) {
+        let ltdc = unsafe { &*LTDC::ptr() };
+
+        let mut red: u8;
+        let mut green: u8;
+        let mut blue: u8;
+
+        // assumes 332 rgb 8-bit format
+        for color in u8::MIN..u8::MAX {
+            red = (((0b11100000 & color) >> 5) * 255) / 7;
+            green = (((0b00011100 & color) >> 2) * 255) / 7;
+            blue = ((0b00000011 & color) * 255) / 3;
+
+            ltdc.layer1.clutwr.write(|w| {
+                w.red().bits(red);
+                w.green().bits(green);
+                w.blue().bits(blue);
+                w.clutadd().bits(color)
+            });
+        }
+
+        self.clut_filled = true;
+    }
+
+    pub fn enable_layer(&self) {
+        let ltdc = unsafe { &*LTDC::ptr() };
+
+        ltdc.layer1.cr.modify(|_, w| {
+            if self.clut_filled {
+                w.cluten().set_bit();
+            }
+
+            w.len().set_bit()
+        });
+    }
 }
 
 pub struct L1CR {
