@@ -422,6 +422,7 @@ dependencies = [
  "defmt",
  "defmt-rtt",
  "defmt-test",
+ "lcd",
  "panic-probe",
 ]
 

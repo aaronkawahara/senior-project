@@ -1,6 +1,6 @@
 #![no_std]
 
-use core::{mem, u16, u32};
+use core::{convert::TryInto, mem, u16, u32};
 pub struct Lcd {
     frame_buffer: [u8; 480 * 272],
 }
@@ -12,8 +12,12 @@ impl Lcd {
         }
     }
 
-    pub fn buffer_address(self) -> u32 {
+    pub fn buffer_address(&self) -> u32 {
         unsafe { mem::transmute::<&u8, u32>(&self.frame_buffer[0]) }
+    }
+
+    pub fn buffer_size(&self) -> usize {
+        self.frame_buffer.len().try_into().unwrap()
     }
 
     pub const SCREEN_WIDTH: u16 = 480;
@@ -24,7 +28,5 @@ impl Lcd {
     pub const VBP: u16 = 3;
     pub const VFP: u16 = 2;
     pub const HSYNC_WIDTH: u16 = 1;
-    pub const VSYNC_HEIGHT: u16 = 1; // maybe incorporated into BP values
+    pub const VSYNC_HEIGHT: u16 = 1;
 }
-
-// struct for pin assignments
