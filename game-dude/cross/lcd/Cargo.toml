@@ -12,3 +12,4 @@ test = false
 [dependencies]
 embedded-hal = "0.2.4"
 embedded-graphics = "0.6.2"
+stm32l4p5-hal = { path = "../../stm32l4p5-hal" }

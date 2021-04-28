@@ -13,6 +13,10 @@ version = "0.1.0"
 name = "board"
 harness = false # don't use the standard harness (`test` crate)
 
+# [[test]]
+# name = "lcd"
+# harness = false # don't use the standard harness (`test` crate)
+
 [dev-dependencies]
 defmt = "0.2.1"
 defmt-rtt = "0.2.0"
