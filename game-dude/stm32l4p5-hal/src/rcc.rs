@@ -298,7 +298,7 @@ pub struct APB2 {
 }
 
 impl APB2 {
-    pub(crate) fn enr(&mut self) -> &rcc::APB2ENR {
+    pub fn enr(&mut self) -> &rcc::APB2ENR {
         // NOTE(unsafe) this proxy grants exclusive access to this register
         unsafe { &(*RCC::ptr()).apb2enr }
     }
@@ -738,15 +738,15 @@ impl CFGR {
         if let Some(pllconf) = pllconf {
             // Sanity-checks per RM0394, 6.4.4 PLL configuration register (RCC_PLLCFGR)
             let r = pllconf.r.to_division_factor();
-            let clock_speed = clock_speed / (pllconf.m as u32 + 1);
-            let vco = clock_speed * pllconf.n as u32;
+            let pll_input = clock_speed / (pllconf.m as u32 + 1);
+            let vco = pll_input * pllconf.n as u32;
             let output_clock = vco / r;
 
             assert!(r <= 8); // Allowed max output divider
             assert!(pllconf.n >= 8); // Allowed min multiplier
             assert!(pllconf.n <= 127); // Allowed max multiplier
-            assert!(clock_speed >= 2_660_000); // VCO input clock min
-            assert!(clock_speed <= 8_000_000); // VCO input clock max
+            assert!(pll_input >= 2_660_000); // VCO input clock min
+            assert!(pll_input <= 8_000_000); // VCO input clock max
             assert!(vco >= 64_000_000); // VCO output min
             assert!(vco <= 334_000_000); // VCO output max
             assert!(output_clock <= 120_000_000); // Max output clock
@@ -1061,13 +1061,9 @@ impl PLLSAI2CFGR {
         let rcc = unsafe { &*RCC::ptr() };
 
         // disable pllsai2ON in rcc.cr
-        rcc.cr.modify(|_, w| {
-            w.pllsai2on().clear_bit()
-        });
-
-        // wait for pllsai2rdy is cleared
-        while rcc.cr.read().pllsai2rdy() == true {}
-
+        rcc.cr.modify(|_, w| { w.pllsai2on().clear_bit() });
+        while rcc.cr.read().pllsai2rdy().bit_is_set() {}
+        
         // make field changes
         if let Some(sai2p_div) = self.sai2p_div {
             rcc.pllsai2cfgr.modify(|_, w| {
@@ -1106,15 +1102,14 @@ impl PLLSAI2CFGR {
         }
 
         // enable pllsai2ON in rcc.cr
-        rcc.cr.modify(|_, w| {
-            w.pllsai2on().set_bit()
-        });
+        rcc.cr.modify(|_, w| {w.pllsai2on().set_bit() });
+        while rcc.cr.read().pllsai2rdy().bit_is_set() {}
 
         // enable the desired pllsai2 outputs with pllsai2(pen, qen, ren)
         if self.lcd_enabled != rcc.pllsai2cfgr.read().pllsai2ren().bit() {
             rcc.pllsai2cfgr.modify(|_, w| {
                 w.pllsai2ren().bit(self.lcd_enabled)
-            })
+            });
         }
 
         if self.dsi_enabled != rcc.pllsai2cfgr.read().pllsai2qen().bit() {

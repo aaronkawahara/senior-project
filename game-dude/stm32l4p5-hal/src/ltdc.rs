@@ -313,17 +313,17 @@ pub struct SRCR {
 }
 
 impl SRCR {
-    pub(crate) fn reg(&mut self) -> &ltdc::SRCR {
+    pub(crate) fn reg(&self) -> &ltdc::SRCR {
         unsafe { &(*LTDC::ptr()).srcr }
     }
 
-    pub fn set_vbr(&mut self) {
+    pub fn set_vbr(&self) {
         self.reg().modify(|_, w| {
             w.vbr().set_bit()
         });
     }
 
-    pub fn set_imr(&mut self) {
+    pub fn set_imr(&self) {
         self.reg().modify(|_, w| {
             w.imr().set_bit()
         })
@@ -347,17 +347,17 @@ impl BCCR {
         });
     }
 
-    pub fn bcred(mut self, red: u8) -> Self {
+    pub fn bcred(&mut self, red: u8) -> &mut Self {
         self.bcred = Some (red);
         self
     }
 
-    pub fn bcgreen(mut self, green: u8) -> Self {
+    pub fn bcgreen(&mut self, green: u8) -> &mut Self {
         self.bcgreen = Some (green);
         self
     }
 
-    pub fn bcblue(mut self, blue: u8) -> Self {
+    pub fn bcblue(&mut self, blue: u8) -> &mut Self {
         self.bcblue = Some (blue);
         self
     }
@@ -461,7 +461,7 @@ pub struct CDSR {
 
 impl CDSR {
     #[allow(dead_code)]
-    pub(crate) fn reg(&mut self) -> &ltdc::CDSR {
+    pub fn reg(&self) -> &ltdc::CDSR {
         unsafe { &(*LTDC::ptr()).cdsr }
     } 
 }
@@ -517,27 +517,25 @@ impl LAYER1 {
         ltdc.layer1.cfblnr.modify(|_, w| {
             w.cfblnbr().bits(layer_height)
         });
-
-
     }
 
     pub fn fill_clut_l8(&mut self) {
         let ltdc = unsafe { &*LTDC::ptr() };
 
-        let mut red: u8;
-        let mut green: u8;
-        let mut blue: u8;
+        let mut red: u32;
+        let mut green: u32;
+        let mut blue: u32;
 
         // assumes 332 rgb 8-bit format
         for color in u8::MIN..u8::MAX {
-            red = (((0b11100000 & color) >> 5) * 255) / 7;
-            green = (((0b00011100 & color) >> 2) * 255) / 7;
-            blue = ((0b00000011 & color) * 255) / 3;
+            red = (((0b11100000 & color) >> 5) as u32 * 255) / 7;
+            green = (((0b00011100 & color) >> 2) as u32 * 255) / 7;
+            blue = ((0b00000011 & color) as u32 * 255) / 3;
 
             ltdc.layer1.clutwr.write(|w| {
-                w.red().bits(red);
-                w.green().bits(green);
-                w.blue().bits(blue);
+                w.red().bits(red as u8);
+                w.green().bits(green as u8);
+                w.blue().bits(blue as u8);
                 w.clutadd().bits(color)
             });
         }
