@@ -1,25 +1,18 @@
 #![no_std]
 
 use stm32l4p5_hal as hal;
-use hal::{
-    flash::FlashExt,
-    gpio::{self, GpioExt},
-    ltdc::LtdcExt, pac, pwr::PwrExt, 
-    rcc::{RccExt, PllConfig, PllDivider, PllSource},
-};
+use hal::{flash::{self, FlashExt}, gpio::{self, GpioExt, Output, PB7, PC1, PushPull}, ltdc::{Ltdc, LtdcExt}, pac::{self, Peripherals}, prelude::{_embedded_hal_digital_v2_OutputPin, _embedded_hal_digital_v2_StatefulOutputPin}, pwr::{Pwr, PwrExt}, rcc::{Clocks, Rcc, RccExt, PllConfig, PllDivider, PllSource}};
 use lcd::Lcd;
 
 pub struct Board {
-    pub lcd: Lcd,
+    rcc: Rcc,
+    flash: flash::Parts,
+    pwr: Pwr,
+    ltdc: Ltdc,
 }
 
 impl Board {
-    pub fn init() -> Self {
-        let peripherals = pac::Peripherals::take().unwrap();
-        let mut rcc = peripherals.RCC.constrain();
-        let mut flash = peripherals.FLASH.constrain();
-        let mut pwr = peripherals.PWR.constrain(&mut rcc.apb1r1);
-        
+    pub fn init_system_clocks(&mut self) -> Clocks {
         // VCO_in = PLL_in / pllm | 2.66MhHz <= VCO_in <= 8MHz
         // 8Mhz = 16MHz / pllm
         let pllm: u8 = 2;
@@ -38,15 +31,17 @@ impl Board {
             pllp_div
         );
 
-        let _clocks = rcc
+        self.rcc
             .cfgr
             .pll_source(PllSource::HSI16)
             .sysclk_with_pll(hal::rcc::MAX_BOOST_SYSCLK, pll_config)
             .hclk(hal::rcc::MAX_BOOST_SYSCLK)
             .pclk1(hal::rcc::MAX_BOOST_SYSCLK) // don't know if needed
             .pclk2(hal::rcc::MAX_BOOST_SYSCLK)
-            .freeze(&mut flash.acr, &mut pwr);
+            .freeze(&mut self.flash.acr, &mut self.pwr)
+    }
 
+    pub fn init_ltdc_clocks(&mut self) {
         // VCO_in = PLL_in / sai2m_div | 2.66MhHz <= VCO_in <= 8MHz
         // 8Mhz = 16MHz / sai2m_div
         let sai2m_div: u8 = 2;
@@ -59,16 +54,70 @@ impl Board {
         // 12MHz = 96Mhz / lcd_div
         let lcd_div = pac::rcc::pllsai2cfgr::PLLSAI2R_A::DIV8;
 
-        rcc.pllsai2cfgr
+        self.rcc.pllsai2cfgr
             .sai2m_div(sai2m_div)
             .sai2n_mult(sai2n_mult)
             .lcd_div(lcd_div)
             .freeze();
             
-        rcc.apb2.enr().modify(|_, w| { w.ltdcen().set_bit() });
+        self.rcc.apb2.enr().modify(|_, w| { w.ltdcen().set_bit() });
+    }
 
+    pub fn init_ltdc(&mut self, buffer_start_address: u32) {
+        // LTDC configuration
+        self.ltdc.config_timings(
+            Lcd::HSYNC_WIDTH,
+            Lcd::VSYNC_HEIGHT,
+            Lcd::HBP,
+            Lcd::HFP,
+            Lcd::VBP,
+            Lcd::VFP,
+            Lcd::SCREEN_WIDTH,
+            Lcd::SCREEN_HEIGHT,
+        );
+
+        // config synchronous signals and clk polarity
+        self.ltdc.gcr
+            .hspol(false)
+            .vspol(false)
+            .depol(false)
+            .pcpol(true)
+            .den(false)
+            .update_reg();
+
+        // config background color 
+        self.ltdc.bccr
+            .bcred(0x00)
+            .bcgreen(0x00)
+            .bcblue(0x00)
+            .update_reg();
+
+        // // config interrupts
+        // self.self.ltdc.ier.lie(true).update_reg();
+        // self.self.ltdc.lipcr.lipos(Lcd::SCREEN_HEIGHT).update_reg();
+        
+        self.ltdc.layer1.config_layer(
+            Lcd::SCREEN_WIDTH,
+            Lcd::SCREEN_HEIGHT,
+            pac::ltdc::layer::pfcr::PF_A::L8,
+            buffer_start_address
+        );
+
+        self.ltdc.layer1.fill_clut_l8();
+        self.ltdc.layer1.enable_layer();
+        self.ltdc.srcr.set_imr();
+        self.ltdc.gcr.ltdcen(true).update_reg();
+    }
+
+    pub fn new() -> Board {
+        let peripherals = hal::pac::Peripherals::take().unwrap();
+        let mut rcc = peripherals.RCC.constrain();
+        let flash = peripherals.FLASH.constrain();
+        let ltdc = peripherals.LTDC.constrain();
+        let pwr = peripherals.PWR.constrain(&mut rcc.apb1r1);
+
+        // forced to initialized GPIO here because the HAL I copied sucks
         let mut gpioa = peripherals.GPIOA.split(&mut rcc.ahb2);
-        let mut _gpiob = peripherals.GPIOB.split(&mut rcc.ahb2);
         let mut gpioc = peripherals.GPIOC.split(&mut rcc.ahb2);
         let mut gpiod = peripherals.GPIOD.split(&mut rcc.ahb2);
         let mut gpioe = peripherals.GPIOE.split(&mut rcc.ahb2);
@@ -193,7 +242,6 @@ impl Board {
         )
         .into_af11(&mut gpiod.moder, &mut gpiod.afrh)
         .set_speed(gpio::Speed::VeryHigh);
-
 
         let _r7 = gpiod
         .pd12
@@ -365,58 +413,11 @@ impl Board {
         .into_af11(&mut gpioa.moder, &mut gpioa.afrh)
         .set_speed(gpio::Speed::VeryHigh);
 
-        let mut ltdc = peripherals.LTDC.constrain();
-
-        // LTDC configuration
-        ltdc.config_timings(
-            Lcd::HSYNC_WIDTH,
-            Lcd::VSYNC_HEIGHT,
-            Lcd::HBP,
-            Lcd::HFP,
-            Lcd::VBP,
-            Lcd::VFP,
-            Lcd::SCREEN_WIDTH,
-            Lcd::SCREEN_HEIGHT,
-        );
-
-        // config synchronous signals and clk polarity
-        ltdc.gcr
-            .hspol(false)
-            .vspol(false)
-            .depol(false)
-            .pcpol(true)
-            .den(false)
-            .update_reg();
-
-        // config background color 
-        ltdc.bccr
-            .bcred(0x00)
-            .bcgreen(0x00)
-            .bcblue(0x00)
-            .update_reg();
-
-        // // config interrupts
-        // ltdc.ier.lie(true).update_reg();
-        // ltdc.lipcr.lipos(Lcd::SCREEN_HEIGHT).update_reg();
-
-        let mut lcd = Lcd::new();
-
-        ltdc.layer1.config_layer(
-            Lcd::SCREEN_WIDTH,
-            Lcd::SCREEN_HEIGHT,
-            pac::ltdc::layer::pfcr::PF_A::L8,
-            lcd.buffer_address()
-        );
-
-        ltdc.layer1.fill_clut_l8();
-        ltdc.layer1.enable_layer();
-        ltdc.srcr.set_imr();
-        ltdc.gcr.ltdcen(true).update_reg();
-        
-        lcd.set_ltdc(ltdc);
-        
-        Self {
-            lcd
+        Board {
+            rcc,
+            flash,
+            pwr,
+            ltdc,
         }
     }
 }
