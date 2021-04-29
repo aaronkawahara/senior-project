@@ -21,12 +21,16 @@ dependencies = [
 name = "app"
 version = "0.1.0"
 dependencies = [
+ "asm-delay",
  "board",
  "button",
  "cortex-m-rt",
  "defmt",
  "defmt-rtt",
+ "embedded-hal",
+ "lcd",
  "panic-probe",
+ "stm32l4p5-hal",
 ]
 
 [[package]]
@@ -39,6 +43,17 @@ dependencies = [
  "generic-array 0.13.3",
  "generic-array 0.14.4",
  "stable_deref_trait",
+]
+
+[[package]]
+name = "asm-delay"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9a69a963b70ddacfcd382524f72a4576f359af9334b3bf48a79566590bb8bfa"
+dependencies = [
+ "bitrate",
+ "cortex-m 0.7.2",
+ "embedded-hal",
 ]
 
 [[package]]
@@ -55,6 +70,12 @@ name = "bitfield"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46afbd2983a5d5a7bd740ccb198caf5b82f45c40c09c0eed36052d91cb92e719"
+
+[[package]]
+name = "bitrate"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c147d86912d04bef727828fda769a76ca81629a46d8ba311a8d58a26aa91473d"
 
 [[package]]
 name = "board"

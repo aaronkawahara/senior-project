@@ -10,6 +10,7 @@ pub use pac as stm32;
 // peripheral exports
 pub mod gpio;
 pub mod rcc;
+pub mod prelude;
 pub mod pwr;
 pub mod ltdc;
 pub mod flash;

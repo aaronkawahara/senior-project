@@ -91,11 +91,6 @@ pub struct Ltdc {
 }
 
 impl Ltdc {
-    // enable LTDC clk in RCC_CR The LTDC clock is generated from a specific PLL (PLLSAI2) RCC_PLLCFGR
-    // config pixel clk 
-    // RCC stuff
-
-    // config synchronous timings for HSYNC + VSYNC
     pub fn config_timings(
         &self,
         hsync_width: u16, 
@@ -132,30 +127,16 @@ impl Ltdc {
         });
     }
 
-    // config synchronous signals and clk polarity
-    // LTDC_GCR
+    pub fn reload_shadow_reg(&self) {
+        self.srcr.set_vbr();
+    }
 
-    // config background color 
-    // LTDC_BCCR
+    pub fn wait_for_frame(&self) {
+        let cdsr = self.cdsr.reg().read();
 
-    // config interrupts in 
-    // LTDC_IER
-    // LTDC_LIPCR
-
-    // config l1 params
-    // Lx... 
-
-    // enable l1 and CLUT in 
-    // LTDC_LxCR
-
-    // dithering and color keying optional
-    // GCR LxCKR
-
-    // reload shadow registers to active register
-    // LTDC_SRCR
-
-    // enable LCD-TFT controller
-    // LTDC_GCR
+        while cdsr.vsyncs().is_active() {};
+        while !cdsr.vsyncs().is_active() {};
+    }
 }
 
 pub struct SSCR {

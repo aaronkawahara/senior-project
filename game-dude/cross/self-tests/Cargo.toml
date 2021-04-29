@@ -1,4 +1,3 @@
-#on-target testing
 [package]
 authors = ["Aaron Kawahara"]
 name = "self-tests"
@@ -6,12 +5,9 @@ publish = false
 edition = "2018"
 version = "0.1.0"
 
-# copied from ferrous hal testing
-# NOTE `[[test]].harness` is required for *each*
-# file in `tests/*.rs
 [[test]]
-name = "board"
-harness = false # don't use the standard harness (`test` crate)
+name = "test"
+harness = false
 
 # [[test]]
 # name = "lcd"
@@ -27,7 +23,6 @@ lcd = { path = "../lcd" }
 
 [features]
 default = ['defmt-trace']
-# these features are required by defmt
 defmt-default = []
 defmt-trace = []
 defmt-debug = []
