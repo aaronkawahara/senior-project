@@ -376,7 +376,7 @@ pub struct CFGR {
 
 impl CFGR {
     /// Add an HSE to the system
-    pub fn hse<F>(mut self, freq: F, bypass: CrystalBypass, css: ClockSecuritySystem) -> Self
+    pub fn hse<F>(&mut self, freq: F, bypass: CrystalBypass, css: ClockSecuritySystem) -> &mut Self
     where
         F: Into<Hertz>,
     {
@@ -390,14 +390,14 @@ impl CFGR {
     }
 
     /// Add an 32.768 kHz LSE to the system
-    pub fn lse(mut self, bypass: CrystalBypass, css: ClockSecuritySystem) -> Self {
+    pub fn lse(&mut self, bypass: CrystalBypass, css: ClockSecuritySystem) -> &mut Self {
         self.lse = Some(LseConfig { bypass, css });
 
         self
     }
 
     /// Sets a frequency for the AHB bus
-    pub fn hclk<F>(mut self, freq: F) -> Self
+    pub fn hclk<F>(&mut self, freq: F) -> &mut Self
     where
         F: Into<Hertz>,
     {
@@ -406,25 +406,25 @@ impl CFGR {
     }
 
     /// Enable the 48 MHz USB, RNG, SDMMC HSI clock source. Not available on all stm32l4x6 series
-    pub fn hsi48(mut self, on: bool) -> Self {
+    pub fn hsi48(&mut self, on: bool) -> &mut Self {
         self.hsi48 = on;
         self
     }
 
     /// Enables the MSI with the specified speed
-    pub fn msi(mut self, range: MsiFreq) -> Self {
+    pub fn msi(&mut self, range: MsiFreq) -> &Self {
         self.msi = Some(range);
         self
     }
 
     /// Sets LSI clock on (the default) or off
-    pub fn lsi(mut self, on: bool) -> Self {
+    pub fn lsi(&mut self, on: bool) -> &Self {
         self.lsi = on;
         self
     }
 
     /// Sets a frequency for the APB1 bus
-    pub fn pclk1<F>(mut self, freq: F) -> Self
+    pub fn pclk1<F>(&mut self, freq: F) -> &mut Self
     where
         F: Into<Hertz>,
     {
@@ -433,7 +433,7 @@ impl CFGR {
     }
 
     /// Sets a frequency for the APB2 bus
-    pub fn pclk2<F>(mut self, freq: F) -> Self
+    pub fn pclk2<F>(&mut self, freq: F) -> &mut Self
     where
         F: Into<Hertz>,
     {
@@ -442,7 +442,7 @@ impl CFGR {
     }
 
     /// Sets the system (core) frequency
-    pub fn sysclk<F>(mut self, freq: F) -> Self
+    pub fn sysclk<F>(&mut self, freq: F) -> &mut Self
     where
         F: Into<Hertz>,
     {
@@ -451,7 +451,7 @@ impl CFGR {
     }
 
     /// Sets the system (core) frequency with some pll configuration
-    pub fn sysclk_with_pll<F>(mut self, freq: F, cfg: PllConfig) -> Self
+    pub fn sysclk_with_pll<F>(&mut self, freq: F, cfg: PllConfig) -> &mut Self
     where
         F: Into<Hertz>,
     {
@@ -461,7 +461,7 @@ impl CFGR {
     }
 
     /// Sets the PLL source
-    pub fn pll_source(mut self, source: PllSource) -> Self {
+    pub fn pll_source(&mut self, source: PllSource) -> &mut Self {
         self.pll_source = Some(source);
         self
     }
@@ -698,6 +698,10 @@ impl CFGR {
 
         assert!(pclk2 <= sysclk);
 
+        // modify power boost mode
+        rcc.apb1enr1.modify(|_, w| {w.pwren().set_bit() });
+        while rcc.apb1enr1.read().pwren().bit_is_clear() {}
+
         if sysclk > MAX_NORMAL_SYSCLK {
             // divide sysclk by 2 before switching to higher freq
             rcc.cfgr.modify(|_, w| unsafe {
@@ -707,11 +711,14 @@ impl CFGR {
 
             // enabel power boost for higher freq
             pwr.cr5.enable_boost();
-            while pwr.cr5.reg().read().r1mode().bit() != false {}
+            while !pwr.cr5.boost_enabled() {}
         } else {
             pwr.cr5.disable_boost();
-            while pwr.cr5.reg().read().r1mode().bit() != true {}
+            while pwr.cr5.boost_enabled() {}
         }
+
+        rcc.apb1enr1.modify(|_, w| {w.pwren().clear_bit() });
+        while rcc.apb1enr1.read().pwren().bit_is_set() {}
 
         // adjust flash wait states
         unsafe {
@@ -1005,53 +1012,53 @@ pub struct PLLSAI2CFGR {
 }
 
 impl PLLSAI2CFGR {
-    pub fn sai2p_div(mut self, div: u8) -> Self {
+    pub fn sai2p_div(&mut self, div: u8) -> &mut Self {
         self.sai2p_div = Some(div);
 
         self
     }
 
-    pub fn lcd_div(mut self, div: rcc::pllsai2cfgr::PLLSAI2R_A) -> Self{
+    pub fn lcd_div(&mut self, div: rcc::pllsai2cfgr::PLLSAI2R_A) -> &mut Self{
         self.lcd_div = Some(div);
         
         self
     }
 
-    pub fn lcd_enabled(mut self, enabled: bool) -> Self {
+    pub fn lcd_enabled(&mut self, enabled: bool) -> &mut Self {
         self.lcd_enabled = enabled;
 
         self
     }
     
-    pub fn dsi_div(mut self, div: rcc::pllsai2cfgr::PLLSAI2Q_A) -> Self {
+    pub fn dsi_div(&mut self, div: rcc::pllsai2cfgr::PLLSAI2Q_A) -> &mut Self {
         self.dsi_div = Some(div);
 
         self
     }
 
-    pub fn dsi_enabled(mut self, enabled: bool) -> Self {
+    pub fn dsi_enabled(&mut self, enabled: bool) -> &mut Self {
         self.dsi_enabled = enabled;
 
         self
     }
 
-    pub fn sai2p(mut self, div: rcc::pllsai2cfgr::PLLSAI2P_A) {
+    pub fn sai2p(&mut self, div: rcc::pllsai2cfgr::PLLSAI2P_A) {
         self.sai2p = Some(div);
     }
 
-    pub fn sai2p_enabled(mut self, enabled: bool) -> Self {
+    pub fn sai2p_enabled(&mut self, enabled: bool) -> &mut Self {
         self.sai2p_enabled = enabled;
 
         self
     }
 
-    pub fn sai2n_mult(mut self, mult: u8) -> Self {
+    pub fn sai2n_mult(&mut self, mult: u8) -> &mut Self {
         self.sai2n_mult = Some(mult);
 
         self
     }
 
-    pub fn sai2m_div(mut self, div: u8) -> Self {
+    pub fn sai2m_div(&mut self, div: u8) -> &mut Self {
         self.sai2m_div = Some(div);
 
         self

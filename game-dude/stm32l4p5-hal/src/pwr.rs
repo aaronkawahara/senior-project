@@ -103,6 +103,10 @@ impl CR5 {
         unsafe { &(*PWR::ptr()).cr5 }
     }
 
+    pub fn boost_enabled(&mut self) -> bool {
+        self.reg().read().r1mode().bit_is_clear()
+    }
+
     pub fn enable_boost(&mut self) {
         self.reg().write(|w| { w.r1mode().bit(false) });
         self.boost_enabled = true;
