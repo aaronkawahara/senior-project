@@ -29,10 +29,10 @@ impl Lcd {
     pub const SCREEN_WIDTH: u16 = 480;
     pub const SCREEN_HEIGHT: u16 = 272;
     pub const TOTAL_PIXELS: usize = 130_560;
-    pub const HBP: u16 = 255;
-    pub const HFP: u16 = 65;
-    pub const VBP: u16 = 31;
-    pub const VFP: u16 = 93;
-    pub const HSYNC_WIDTH: u16 = 1;
+    pub const HBP: u16 = 40;
+    pub const HFP: u16 = 5;
+    pub const VBP: u16 = 8;
+    pub const VFP: u16 = 8;
+    pub const HSYNC_WIDTH: u16 = 4;
     pub const VSYNC_HEIGHT: u16 = 4;
 }

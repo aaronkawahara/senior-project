@@ -1,7 +1,15 @@
 #![no_std]
 
 use stm32l4p5_hal as hal;
-use hal::{flash::{self, FlashExt}, gpio::{self, GpioExt, Output, PB7, PC1, PushPull}, ltdc::{Ltdc, LtdcExt}, pac::{self, Peripherals}, prelude::{_embedded_hal_digital_v2_OutputPin, _embedded_hal_digital_v2_StatefulOutputPin}, pwr::{Pwr, PwrExt}, rcc::{Clocks, Rcc, RccExt, PllConfig, PllDivider, PllSource}};
+use hal::{
+    flash::{self, FlashExt}, 
+    gpio::{self, GpioExt, Output, PushPull}, 
+    ltdc::{Ltdc, LtdcExt}, 
+    pac::{self, Peripherals}, 
+    prelude::{_embedded_hal_digital_v2_OutputPin, _embedded_hal_digital_v2_StatefulOutputPin}, 
+    pwr::{Pwr, PwrExt}, 
+    rcc::{Clocks, Rcc, RccExt, PllConfig, PllDivider, PllSource}
+};
 use lcd::Lcd;
 
 pub struct Board {
@@ -92,9 +100,9 @@ impl Board {
             .bcblue(0x00)
             .update_reg();
 
-        // // config interrupts
-        // self.self.ltdc.ier.lie(true).update_reg();
-        // self.self.ltdc.lipcr.lipos(Lcd::SCREEN_HEIGHT).update_reg();
+        // // // config interrupts
+        // // self.self.ltdc.ier.lie(true).update_reg();
+        // // self.self.ltdc.lipcr.lipos(Lcd::SCREEN_HEIGHT).update_reg();
         
         self.ltdc.layer1.config_layer(
             Lcd::SCREEN_WIDTH,
@@ -104,9 +112,13 @@ impl Board {
         );
 
         self.ltdc.layer1.fill_clut_l8();
-        self.ltdc.layer1.enable_layer();
-        self.ltdc.srcr.set_imr();
-        self.ltdc.gcr.ltdcen(true).update_reg();
+        // self.ltdc.layer1.enable_layer();
+        // self.ltdc.srcr.set_imr();
+        // self.ltdc.gcr.ltdcen(true).update_reg();
+    }
+
+    pub fn ltdc(&mut self) -> &mut Ltdc {
+        &mut self.ltdc
     }
 
     pub fn new() -> Board {
