@@ -75,6 +75,12 @@ impl Into<KiloHertz> for MegaHertz {
     }
 }
 
+impl From<Hertz> for u32 {
+    fn from(t: Hertz) -> Self {
+        t.0
+    }
+}
+
 /// Time unit
 #[derive(PartialEq, PartialOrd, Clone, Copy, Debug)]
 pub struct MilliSeconds(pub u32);

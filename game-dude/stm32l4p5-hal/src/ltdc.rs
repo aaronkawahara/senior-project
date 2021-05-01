@@ -1,14 +1,21 @@
+use defmt;
 use crate::stm32::{
     ltdc,
     LTDC,
 };
+use crate::gpio::{
+    Output,
+    PC1,
+    PushPull,
+};
+use crate::hal::digital::v2::OutputPin;
 
 pub trait LtdcExt {
-    fn constrain(self) -> Ltdc;
+    fn constrain(self, pclk2_freq: u32, pixel_clk_freq: u32, display_pwr: DisplayPwr) -> Ltdc;
 }
 
 impl LtdcExt for LTDC {
-    fn constrain(self) -> Ltdc {
+    fn constrain(self, pclk2_freq: u32, pixel_clk_freq: u32, display_pwr: DisplayPwr) -> Ltdc {
         Ltdc {
             sscr: SSCR { 
                 hsw: None, 
@@ -54,9 +61,30 @@ impl LtdcExt for LTDC {
             cpsr: CPSR { _0: () },
             cdsr: CDSR { _0: () },
             layer1: LAYER1 { clut_filled: false },
+            pwr_pins: LtdcPwrPins {
+                display_pwr,
+            },
+            pclk2_freq,
+            pixel_clk_freq,
         }
     }
 }
+
+pub struct LtdcPwrPins<D: OutputPin>{
+    display_pwr: D,
+}
+
+impl LtdcPwrPins<DisplayPwr> {
+    pub fn display_pwr_on(&mut self) {
+        self.display_pwr.set_high().ok();
+    }
+
+    pub fn display_pwr_off(&mut self) {
+        self.display_pwr.set_low().ok();
+    }
+}
+
+pub type DisplayPwr = PC1<Output<PushPull>>;
 
 // constrained LTDC peripheral
 pub struct Ltdc {
@@ -88,6 +116,12 @@ pub struct Ltdc {
     pub cdsr: CDSR,
     // Cluster LAYER%s, containing L?CR, L?WHPCR, L?WVPCR, L?CKCR, L?PFCR, L?CACR, L?DCCR, L?BFCR, L?CFBAR, L?CFBLR, L?CFBLNR, L?CLUTWR"]
     pub layer1: LAYER1,
+    // power pins
+    pub pwr_pins: LtdcPwrPins<DisplayPwr>,
+    // pclk2 freq as configured in rcc
+    pclk2_freq: u32,
+    // pixel clock freq as configured in rcc.pllsai2
+    pixel_clk_freq: u32,
 }
 
 impl Ltdc {
@@ -104,27 +138,31 @@ impl Ltdc {
     ) {
         let ltdc = unsafe { &*LTDC::ptr() };
 
-        // TODO delay for stalled register access
         // TODO update struct values ???
-        ltdc.sscr.modify(|_, w| { 
-            w.hsw().bits(hsync_width - 1);
-            w.vsh().bits(vsync_height - 1)
+        ltdc.sscr.modify(|_, w| { w
+            .hsw().bits(hsync_width - 1)
+            .vsh().bits(vsync_height - 1)
         });
-        
-        ltdc.bpcr.modify(|_, w| {
-            w.ahbp().bits(hsync_width + hbp - 1);
-            w.avbp().bits(vsync_height + vbp - 1)
-        });
+        stall_after_modify(self.pclk2_freq, self.pixel_clk_freq);
 
-        ltdc.awcr.modify(|_, w| {
-            w.aaw().bits(hsync_width + hbp + screen_width - 1);
-            w.aah().bits(vsync_height + vbp + screen_height - 1)
+        ltdc.bpcr.modify(|_, w| { w
+            .ahbp().bits(hsync_width + hbp - 1)
+            .avbp().bits(vsync_height + vbp - 1)
         });
+        stall_after_modify(self.pclk2_freq, self.pixel_clk_freq);
 
-        ltdc.twcr.modify(|_, w| {
-            w.totalw().bits(hsync_width + hbp + screen_width + hfp - 1);
-            w.totalh().bits(vsync_height + vbp + screen_height + vfp - 1)
+        ltdc.awcr.modify(|_, w| { w
+            .aaw().bits(hsync_width + hbp + screen_width - 1)
+            .aah().bits(vsync_height + vbp + screen_height - 1)
         });
+        stall_after_modify(self.pclk2_freq, self.pixel_clk_freq);
+
+        ltdc.twcr.modify(|_, w| { w
+            .totalw().bits(hsync_width + hbp + screen_width + hfp - 1)
+            .totalh().bits(vsync_height + vbp + screen_height + vfp - 1)
+        });
+        stall_after_modify(self.pclk2_freq, self.pixel_clk_freq);
+
     }
 
     pub fn reload_shadow_reg(&self) {
@@ -160,6 +198,10 @@ impl SSCR {
         self.reg().modify(|_, w| { w.vsh().bits(horizontal_lines) });
         self.vsh = Some(horizontal_lines);
         self
+    }
+
+    pub fn read_reg(&mut self) -> u32 {
+        self.reg().read().bits()
     }
 }
 
@@ -248,13 +290,13 @@ impl GCR {
     pub fn update_reg(&self) {
         let gcr = unsafe { &(*LTDC::ptr()).gcr };
 
-        gcr.modify(|_, w| {
-            w.hspol().bit(self.hspol);
-            w.vspol().bit(self.vspol);
-            w.depol().bit(self.depol);
-            w.pcpol().bit(self.pcpol);
-            w.den().bit(self.den);
-            w.ltdcen().bit(self.ltdcen)
+        gcr.modify(|_, w| { w
+            .hspol().bit(self.hspol)
+            .vspol().bit(self.vspol)
+            .depol().bit(self.depol)
+            .pcpol().bit(self.pcpol)
+            .den().bit(self.den)
+            .ltdcen().bit(self.ltdcen)
         });
     }
 
@@ -321,10 +363,10 @@ impl BCCR {
     pub fn update_reg(&self) {
         let bccr = unsafe { &(*LTDC::ptr()).bccr };
 
-        bccr.modify(|_, w| {
-            w.bcred().bits(self.bcred.unwrap_or(0));
-            w.bcgreen().bits(self.bcgreen.unwrap_or(0));
-            w.bcblue().bits(self.bcblue.unwrap_or(0))
+        bccr.modify(|_, w| { w
+            .bcred().bits(self.bcred.unwrap_or(0))
+            .bcgreen().bits(self.bcgreen.unwrap_or(0))
+            .bcblue().bits(self.bcblue.unwrap_or(0))
         });
     }
 
@@ -355,11 +397,11 @@ impl IER {
     pub fn update_reg(&self) {
         let ier = unsafe { &(*LTDC::ptr()).ier };
 
-        ier.modify(|_, w| {
-            w.rrie().bit(self.rrie);
-            w.terrie().bit(self.terrie);
-            w.fuie().bit(self.fuie);
-            w.lie().bit(self.lie)
+        ier.modify(|_, w| { w
+            .rrie().bit(self.rrie)
+            .terrie().bit(self.terrie)
+            .fuie().bit(self.fuie)
+            .lie().bit(self.lie)
         });
     }
 
@@ -461,22 +503,20 @@ impl LAYER1 {
     ) {
         let ltdc = unsafe { &*LTDC::ptr() };
 
-        ltdc.layer1.whpcr.modify(|_, w| {
-            w.whstpos().bits(0);
-            w.whsppos().bits(layer_width)
+        ltdc.layer1.whpcr.modify(|_, w| { w
+            .whstpos().bits(0)
+            .whsppos().bits(layer_width)
         });
 
-        ltdc.layer1.wvpcr.modify(|_, w| {
-            w.wvstpos().bits(0);
-            w.wvsppos().bits(layer_height)
+        ltdc.layer1.wvpcr.modify(|_, w| { w
+            .wvstpos().bits(0)
+            .wvsppos().bits(layer_height)
         });
         
-        ltdc.layer1.pfcr.modify(|_, w| {
-            w.pf().variant(pixel_format)
-        });
+        ltdc.layer1.pfcr.modify(|_, w| { w.pf().variant(pixel_format) });
 
-        ltdc.layer1.cfbar.modify(|_, w| {
-            w.cfbadd().bits(buffer_start_address)
+        ltdc.layer1.cfbar.modify(|_, w| { 
+            w.cfbadd().bits(buffer_start_address) 
         });
 
         let cfbp = layer_width * match pixel_format {
@@ -490,9 +530,9 @@ impl LAYER1 {
             ltdc::layer::pfcr::PF_A::AL88 => 2,
         };
 
-        ltdc.layer1.cfblr.modify(|_, w| {
-            w.cfbp().bits(cfbp);
-            w.cfbll().bits(cfbp + 3)
+        ltdc.layer1.cfblr.modify(|_, w| { w
+            .cfbp().bits(cfbp)
+            .cfbll().bits(cfbp + 3)
         });
 
         ltdc.layer1.cfblnr.modify(|_, w| {
@@ -502,24 +542,26 @@ impl LAYER1 {
 
     pub fn fill_clut_l8(&mut self) {
         let ltdc = unsafe { &*LTDC::ptr() };
+        let mut color: u32 = 0;
 
-        let mut red: u32;
-        let mut green: u32;
-        let mut blue: u32;
+        while color <= u8::MAX as u32 {
+            let red: u32 = (((0b11100000 & color) >> 5)  * 255) / 7;
+            let green: u32 = (((0b00011100 & color) >> 2) * 255) / 7;
+            let blue: u32 = ((0b00000011 & color) * 255) / 3;
 
-        // assumes 332 rgb 8-bit format
-        for color in u8::MIN..u8::MAX {
-            red = (((0b11100000 & color) >> 5) as u32 * 255) / 7;
-            green = (((0b00011100 & color) >> 2) as u32 * 255) / 7;
-            blue = ((0b00000011 & color) as u32 * 255) / 3;
-
-            ltdc.layer1.clutwr.write(|w| {
-                w.red().bits(red as u8);
-                w.green().bits(green as u8);
-                w.blue().bits(blue as u8);
-                w.clutadd().bits(color)
+            // TODO figure why this causes issues
+            ltdc.layer1.clutwr.write(|w| { w
+                .clutadd().bits(color as u8)
+                .red().bits(red as u8)
+                .green().bits(green as u8)
+                .blue().bits(blue as u8)
             });
+
+            defmt::debug!("color: {}", color);
+            color+=1;
         }
+
+        defmt::debug!("finished filling clut");
 
         self.clut_filled = true;
     }
@@ -527,12 +569,9 @@ impl LAYER1 {
     pub fn enable_layer(&self) {
         let ltdc = unsafe { &*LTDC::ptr() };
 
-        ltdc.layer1.cr.modify(|_, w| {
-            if self.clut_filled {
-                w.cluten().set_bit();
-            }
-
-            w.len().set_bit()
+        ltdc.layer1.cr.modify(|_, w| { w
+            .cluten().bit(self.clut_filled)
+            .len().set_bit()
         });
     }
 }
@@ -822,4 +861,12 @@ impl L1CLUTWR {
         self.blue = Some(blue);
         self
     }
+}
+
+/// stalls for APB2 bus according to LTDC modifcation timings stated in TRM 29.4.3
+pub(crate) fn stall_after_modify(pclk2_freq: u32, pixel_clk_freq: u32) {
+    let pclk2_cycles: u32 = 7;
+    let pixel_clk_cycles: u32 = 5;
+    let total_cycles: u32 = pclk2_cycles + pixel_clk_cycles * (pclk2_freq / pixel_clk_freq + 1);
+    cortex_m::asm::delay(total_cycles);
 }
