@@ -26,6 +26,7 @@ impl Lcd {
         }
     }
 
+    pub const PIXEL_CLK_FREQ: u32 = 9_000_000;
     pub const SCREEN_WIDTH: u16 = 480;
     pub const SCREEN_HEIGHT: u16 = 272;
     pub const TOTAL_PIXELS: usize = 130_560;
