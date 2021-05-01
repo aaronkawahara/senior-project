@@ -6,12 +6,8 @@ edition = "2018"
 version = "0.1.0"
 
 [[test]]
-name = "test"
+name = "lcd"
 harness = false
-
-# [[test]]
-# name = "lcd"
-# harness = false # don't use the standard harness (`test` crate)
 
 [dev-dependencies]
 defmt = "0.2.1"
@@ -20,6 +16,7 @@ defmt-test = "0.2.1"
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 board = { path = "../board" }
 lcd = { path = "../lcd" }
+stm32l4p5-hal = { path = "../../stm32l4p5-hal" }
 
 [features]
 default = ['defmt-trace']
