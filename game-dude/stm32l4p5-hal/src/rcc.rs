@@ -375,6 +375,11 @@ pub struct CFGR {
 }
 
 impl CFGR {
+    pub fn read_reg(&mut self) -> u32 {
+        let rcc = unsafe { &*RCC::ptr() };
+        rcc.cfgr.read().bits()
+    }
+
     /// Add an HSE to the system
     pub fn hse<F>(&mut self, freq: F, bypass: CrystalBypass, css: ClockSecuritySystem) -> &mut Self
     where
@@ -1042,8 +1047,10 @@ impl PLLSAI2CFGR {
         self
     }
 
-    pub fn sai2p(&mut self, div: rcc::pllsai2cfgr::PLLSAI2P_A) {
+    pub fn sai2p(&mut self, div: rcc::pllsai2cfgr::PLLSAI2P_A) -> &mut Self{
         self.sai2p = Some(div);
+
+        self
     }
 
     pub fn sai2p_enabled(&mut self, enabled: bool) -> &mut Self {
@@ -1067,11 +1074,9 @@ impl PLLSAI2CFGR {
     pub fn freeze(&self) {
         let rcc = unsafe { &*RCC::ptr() };
 
-        // disable pllsai2ON in rcc.cr
         rcc.cr.modify(|_, w| { w.pllsai2on().clear_bit() });
         while rcc.cr.read().pllsai2rdy().bit_is_set() {}
         
-        // make field changes
         if let Some(sai2p_div) = self.sai2p_div {
             rcc.pllsai2cfgr.modify(|_, w| {
                 w.pllsai2pdiv().bits(sai2p_div)
@@ -1103,16 +1108,15 @@ impl PLLSAI2CFGR {
         }
 
         if let Some(sai2m_div) = self.sai2m_div {
+            assert!(sai2m_div > 0);
             rcc.pllsai2cfgr.modify(|_, w| unsafe {
-                w.pllsai2m().bits(sai2m_div)
+                w.pllsai2m().bits(sai2m_div - 1)
             })
         }
 
-        // enable pllsai2ON in rcc.cr
         rcc.cr.modify(|_, w| {w.pllsai2on().set_bit() });
         while rcc.cr.read().pllsai2rdy().bit_is_set() {}
 
-        // enable the desired pllsai2 outputs with pllsai2(pen, qen, ren)
         if self.lcd_enabled != rcc.pllsai2cfgr.read().pllsai2ren().bit() {
             rcc.pllsai2cfgr.modify(|_, w| {
                 w.pllsai2ren().bit(self.lcd_enabled)
@@ -1130,7 +1134,11 @@ impl PLLSAI2CFGR {
                 w.pllsai2pen().bit(self.sai2p_enabled)
             })
         }
-        // pll output < 120MHz
+    }
+
+    pub fn read_reg(&self) -> u32 {
+        let rcc = unsafe { &*RCC::ptr() };
+        rcc.pllsai2cfgr.read().bits()
     }
 }
 
