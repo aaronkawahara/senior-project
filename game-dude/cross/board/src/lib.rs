@@ -57,18 +57,20 @@ impl Board {
         // 72MHz = 8MHz * sai2n_mult
         let sai2n_mult: u8 = 9;
 
-        // LCDCLK = VCO_out / lcd_div | LCDCLK <= 12MHz (hardware restriction)
-        // 9MHz = 72Mhz / lcd_div
-        let lcd_div = pac::rcc::pllsai2cfgr::PLLSAI2R_A::DIV8;
+        // PLLSAI2_R = VCO_out / lcd_div | target = 18MHz (hardware restriction)
+        // 18MHz = 72Mhz / lcd_div
+        let lcd_div = pac::rcc::pllsai2cfgr::PLLSAI2R_A::DIV4;
+
+        // LTDC_CLK = PLLSAI2_R / divr | LTDC_CLK <= 12Mhz (hardware restriction)
+        let sai2_divr: u8 = 0;
 
         self.rcc.pllsai2cfgr
             .sai2m_div(sai2m_div)
             .sai2n_mult(sai2n_mult)
             .lcd_div(lcd_div)
+            .sai2_divr(sai2_divr)
             .lcd_enabled(true)
             .freeze();
-            
-        self.rcc.apb2.enr().modify(|_, w| { w.ltdcen().set_bit() });
     }
 
     pub fn init_ltdc(&mut self, buffer_start_address: u32) {
@@ -407,7 +409,7 @@ impl Board {
             .set_speed(gpio::Speed::VeryHigh);
 
         let _b6 = gpioc
-            .pc8
+            .pc8 // TODO verify if this should be pc7 or pc8
             .into_push_pull_output_with_state(
                 &mut gpioc.moder, 
                 &mut gpioc.otyper, 

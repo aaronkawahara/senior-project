@@ -9,7 +9,7 @@ mod tests {
     use defmt::assert_eq;
     use board::{self, Board};
     use lcd::Lcd;
-    use stm32l4p5_hal::rcc;
+    use stm32l4p5_hal::{pac::{self, ltdc::sscr}, rcc};
 
     #[init]
     fn init() -> Board {
@@ -70,13 +70,20 @@ mod tests {
 
         let rcc = board.rcc();
 
+        let expected_cr: u32 = 0x33000560;
+        assert_eq!(expected_cr, unsafe { (&(*pac::RCC::ptr())).cr.read().bits() });
+
+        let expected_cfgr: u32 = 0xf;
+        assert_eq!(expected_cfgr, rcc.cfgr.read_reg());
+
+        let expected_pllcfgr: u32 = 0x1001E12;
+        assert_eq!(expected_pllcfgr, rcc.pllcfgr.read_reg());
+
         let expected_apb2enr: u32 = 0x04000000;
         assert_eq!(expected_apb2enr, rcc.apb2.enr().read().bits());
 
-        let expected_pllsai2cfgr: u32 = 0x07000910;
+        let expected_pllsai2cfgr: u32 = 0x03000910;
         assert_eq!(expected_pllsai2cfgr, rcc.pllsai2cfgr.read_reg());
-        // expected: 0000_0111000000000000100100010000
-        // read:     0000_0110000000000000100100010000
 
         let ltdc = board.ltdc();
 

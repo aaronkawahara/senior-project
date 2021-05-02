@@ -97,7 +97,9 @@ impl RccExt for RCC {
                 sai2p_enabled: false,
                 sai2n_mult: None,
                 sai2m_div: None,
+                sai2_divr: None,
             },
+            pllcfgr: PLLCFGR { _0: () },
         }
     }
 }
@@ -128,6 +130,18 @@ pub struct Rcc {
     pub ccipr: CCIPR,
     // PLLSAI2 configuration register
     pub pllsai2cfgr: PLLSAI2CFGR,
+    /// PLL configuration register
+    pub pllcfgr: PLLCFGR,
+}
+
+pub struct PLLCFGR {
+    _0: (),
+}
+
+impl PLLCFGR {
+    pub fn read_reg(&self) -> u32 {
+        unsafe { (&(*RCC::ptr())).pllcfgr.read().bits() }
+    }
 }
 
 /// CSR Control/Status Register
@@ -1014,6 +1028,7 @@ pub struct PLLSAI2CFGR {
     sai2p_enabled: bool,
     sai2n_mult: Option<u8>,
     sai2m_div: Option<u8>,
+    sai2_divr: Option<u8>,
 }
 
 impl PLLSAI2CFGR {
@@ -1071,6 +1086,12 @@ impl PLLSAI2CFGR {
         self
     }
 
+    pub fn sai2_divr(&mut self, div: u8) -> &mut Self {
+        self.sai2_divr = Some(div);
+
+        self
+    }
+
     pub fn freeze(&self) {
         let rcc = unsafe { &*RCC::ptr() };
 
@@ -1114,25 +1135,43 @@ impl PLLSAI2CFGR {
             })
         }
 
-        rcc.cr.modify(|_, w| {w.pllsai2on().set_bit() });
-        while rcc.cr.read().pllsai2rdy().bit_is_set() {}
+        if let Some(sai2_divr) = self.sai2_divr {
+            rcc.ccipr2.modify(|_, w| unsafe { 
+                w.pllsai2divr().bits(sai2_divr)
+            });
+        }
+
+        rcc.cr.modify(|_, w| { w.pllsai2on().set_bit() });
+        while rcc.cr.read().pllsai2rdy().bit_is_clear() {}
 
         if self.lcd_enabled != rcc.pllsai2cfgr.read().pllsai2ren().bit() {
             rcc.pllsai2cfgr.modify(|_, w| {
                 w.pllsai2ren().bit(self.lcd_enabled)
+            });
+
+            rcc.apb2enr.modify(|_, w| { 
+                w.ltdcen().bit(self.lcd_enabled) 
             });
         }
 
         if self.dsi_enabled != rcc.pllsai2cfgr.read().pllsai2qen().bit() {
             rcc.pllsai2cfgr.modify(|_, w| {
                 w.pllsai2qen().bit(self.dsi_enabled)
-            })
+            });
+            
+            rcc.apb2enr.modify(|_, w| { 
+                w.dsien().bit(self.dsi_enabled) 
+            });
         }
 
         if self.sai2p_enabled != rcc.pllsai2cfgr.read().pllsai2pen().bit() {
             rcc.pllsai2cfgr.modify(|_, w| {
                 w.pllsai2pen().bit(self.sai2p_enabled)
-            })
+            });
+                        
+            rcc.apb2enr.modify(|_, w| { 
+                w.sai2en().bit(self.sai2p_enabled) 
+            });
         }
     }
 
