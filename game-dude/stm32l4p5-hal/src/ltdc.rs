@@ -557,11 +557,8 @@ impl LAYER1 {
                 .blue().bits(blue as u8)
             });
 
-            defmt::debug!("color: {}", color);
-            color+=1;
+            color += 1;
         }
-
-        defmt::debug!("finished filling clut");
 
         self.clut_filled = true;
     }

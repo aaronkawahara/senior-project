@@ -85,11 +85,22 @@ mod tests {
         let expected_pllsai2cfgr: u32 = 0x03000910;
         assert_eq!(expected_pllsai2cfgr, rcc.pllsai2cfgr.read_reg());
 
-        let ltdc = board.ltdc();
+        let ltdc = unsafe { &(*pac::LTDC::ptr()) };
 
-        // TODO maybe try initiliazing everything in one mega function?
-        // TODO test modifying registers directly
-        let expected_sscr: u32 = (((Lcd::HSYNC_WIDTH - 1) as u32) << 16) | ((Lcd::VSYNC_HEIGHT - 1) as u32);
-        assert_eq!(expected_sscr, ltdc.sscr.read_reg());
+        let expected_sscr: u32 = 0x30003;
+        assert_eq!(expected_sscr, ltdc.sscr.read().bits());
+
+        let expected_bpcr: u32 = 0x2b000b;
+        assert_eq!(expected_bpcr, ltdc.bpcr.read().bits());
+
+        let expected_awcr: u32 = 0x20b011b;
+        assert_eq!(expected_awcr, ltdc.awcr.read().bits());
+
+        let expected_twcr: u32 = 0x2100123;
+        assert_eq!(expected_twcr, ltdc.twcr.read().bits());
+
+        let expected_gcr: u32 = 0x2221;
+        // read:                0x10002221
+        assert_eq!(expected_gcr, ltdc.gcr.read().bits());
     }
 }

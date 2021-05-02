@@ -87,22 +87,25 @@ impl Board {
             Lcd::SCREEN_HEIGHT,
         );
 
-        // config synchronous signals and clk polarity
         self.ltdc.gcr
             .hspol(false)
             .vspol(false)
             .depol(false)
-            .pcpol(true)
+            .pcpol(false)
             .den(false)
             .update_reg();
 
-        // config background color 
         self.ltdc.bccr
             .bcred(0x00)
             .bcgreen(0x00)
             .bcblue(0x00)
             .update_reg();
- 
+
+        self.ltdc.ier
+            .fuie(true)
+            .terrie(true)
+            .update_reg();
+
         self.ltdc.layer1.config_layer(
             Lcd::SCREEN_WIDTH,
             Lcd::SCREEN_HEIGHT,
@@ -111,7 +114,7 @@ impl Board {
         );
 
         // TODO figure out why clut causes issues
-        // self.ltdc.layer1.fill_clut_l8();
+        self.ltdc.layer1.fill_clut_l8();
         self.ltdc.layer1.enable_layer();
         self.ltdc.srcr.set_imr();
         self.ltdc.gcr.ltdcen(true).update_reg();
