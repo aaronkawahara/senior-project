@@ -9,7 +9,7 @@ mod tests {
     use defmt::assert_eq;
     use board::{self, Board};
     use lcd::Lcd;
-    use stm32l4p5_hal::{pac::{self, ltdc::sscr}, rcc};
+    use stm32l4p5_hal::{pac, rcc};
 
     #[init]
     fn init() -> Board {
@@ -100,7 +100,6 @@ mod tests {
         assert_eq!(expected_twcr, ltdc.twcr.read().bits());
 
         let expected_gcr: u32 = 0x2221;
-        // read:                0x10002221
         assert_eq!(expected_gcr, ltdc.gcr.read().bits());
     }
 }

@@ -170,10 +170,10 @@ impl Ltdc {
     }
 
     pub fn wait_for_frame(&self) {
-        let cdsr = self.cdsr.reg().read();
-
-        while cdsr.vsyncs().is_active() {};
-        while !cdsr.vsyncs().is_active() {};
+        let cdsr = self.cdsr.reg();
+        
+        // while cdsr.vsyncs().is_not_active() {};
+        while cdsr.read().vsyncs().is_not_active() {};
     }
 }
 

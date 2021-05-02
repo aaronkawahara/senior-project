@@ -361,6 +361,7 @@ dependencies = [
  "defmt-test",
  "lcd",
  "panic-probe",
+ "stm32l4p5-hal",
 ]
 
 [[package]]
@@ -408,6 +409,8 @@ version = "0.1.0"
 dependencies = [
  "cast",
  "cortex-m 0.7.2",
+ "defmt",
+ "defmt-rtt",
  "embedded-hal",
  "nb 1.0.0",
  "stm32l4p5-pac",
