@@ -503,14 +503,18 @@ impl LAYER1 {
     ) {
         let ltdc = unsafe { &*LTDC::ptr() };
 
+        let whst: u16 = ltdc.bpcr.read().ahbp().bits();
+
         ltdc.layer1.whpcr.modify(|_, w| { w
-            .whstpos().bits(0)
-            .whsppos().bits(layer_width)
+            .whstpos().bits(whst + 1)
+            .whsppos().bits(whst + layer_width)
         });
 
+        let wvst: u16 = ltdc.bpcr.read().avbp().bits();
+
         ltdc.layer1.wvpcr.modify(|_, w| { w
-            .wvstpos().bits(0)
-            .wvsppos().bits(layer_height)
+            .wvstpos().bits(wvst + 1)
+            .wvsppos().bits(wvst + layer_height)
         });
         
         ltdc.layer1.pfcr.modify(|_, w| { w.pf().variant(pixel_format) });
