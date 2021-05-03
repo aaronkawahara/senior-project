@@ -27,6 +27,7 @@ dependencies = [
  "cortex-m-rt",
  "defmt",
  "defmt-rtt",
+ "embedded-graphics",
  "embedded-hal",
  "lcd",
  "panic-probe",

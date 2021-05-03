@@ -1,9 +1,11 @@
 #![no_std]
 
-use core::{convert::TryInto, mem, u16, u32};
+use core::{convert::TryInto, mem, u16, u32, usize};
+use embedded_graphics::{drawable, DrawTarget, pixelcolor::Gray8, prelude::*};
 
+#[repr(C)]
 pub struct Lcd {
-    frame_buffer: [u8; 480 * 272],
+    frame_buffer: [u8; Lcd::TOTAL_PIXELS],
 }
 
 impl Lcd {
@@ -20,9 +22,32 @@ impl Lcd {
     pub fn buffer_size(&self) -> usize {
         self.frame_buffer.len().try_into().unwrap()
     }
+
     pub fn set_color(&mut self, color: u8) {
         for pixel in 0..self.frame_buffer.len() {
             self.frame_buffer[pixel] = color;
+        }
+    }
+
+    pub fn half_color(&mut self, color: u8) {
+        let end: usize = self.frame_buffer.len() / 2;
+        for pixel in 0..end {
+            self.frame_buffer[pixel] = color;
+        }
+    }
+
+    pub fn horizontal_line(&mut self, color: u8, y: u32) {
+        let starting_pixel: usize = (y as usize) * 480;
+
+        for pixel in 0..480 {
+            self.frame_buffer[starting_pixel + pixel] = color;
+        }
+    }
+
+    pub fn vertical_line(&mut self, color: u8, x: u32) {
+        for pixel in 0..Lcd::SCREEN_HEIGHT {
+            let index: u32 = x + pixel as u32 * Lcd::SCREEN_WIDTH as u32;
+            self.frame_buffer[index as usize] = color;
         }
     }
 
@@ -34,6 +59,28 @@ impl Lcd {
     pub const HFP: u16 = 5;
     pub const VBP: u16 = 8;
     pub const VFP: u16 = 8;
-    pub const HSYNC_WIDTH: u16 = 4;
-    pub const VSYNC_HEIGHT: u16 = 4;
+    pub const HSYNC_WIDTH: u16 = 1;
+    pub const VSYNC_HEIGHT: u16 = 1;
+}
+
+impl DrawTarget<Gray8> for Lcd {
+    type Error = core::convert::Infallible;
+
+    fn draw_pixel(&mut self, pixel: drawable::Pixel<Gray8>) -> Result<(), Self::Error> {
+        let Pixel(Point { x, y }, color) = pixel;
+
+        if 0 <= x && x < 479 && 0 <= y && y < 271 {
+            let x_: usize = x.try_into().unwrap();
+            let y_: usize = y.try_into().unwrap();
+            
+            let index: usize = x_ + y_ * 480;
+            self.frame_buffer[index] = color.luma();
+        }
+
+        Ok(())
+    }
+
+    fn size(&self) -> Size {
+        Size::new(Lcd::SCREEN_WIDTH.into(), Lcd::SCREEN_HEIGHT.into())
+    }
 }
