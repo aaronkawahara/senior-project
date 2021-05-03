@@ -29,13 +29,6 @@ impl Lcd {
         }
     }
 
-    pub fn half_color(&mut self, color: u8) {
-        let end: usize = self.frame_buffer.len() / 2;
-        for pixel in 0..end {
-            self.frame_buffer[pixel] = color;
-        }
-    }
-
     pub fn horizontal_line(&mut self, color: u8, y: u32) {
         let starting_pixel: usize = (y as usize) * 480;
 

@@ -1,21 +1,57 @@
 #![no_std]
 
 use lcd::Lcd;
-use stm32l4p5_hal as hal;
-use hal::{
+use stm32l4p5_hal as stm32hal;
+use stm32hal::{
     flash::{self, FlashExt}, 
-    gpio::{self, GpioExt}, 
+    gpio::{self, GpioExt, Input, PullUp}, 
+    hal::digital::v2::InputPin, 
     ltdc::{Ltdc, LtdcExt}, 
-    pac, 
-    pwr::{Pwr, PwrExt}, 
-    rcc::{Clocks, Rcc, RccExt, PllConfig, PllDivider, PllSource}
-};
+    pac, pwr::{Pwr, PwrExt}, 
+    rcc::{self, Clocks, Rcc, RccExt, PllConfig, PllDivider, PllSource}};
 
 pub struct Board {
     rcc: Rcc,
     flash: flash::Parts,
     pwr: Pwr,
     ltdc: Ltdc,
+    dpad: Dpad<UpPin, DownPin, LeftPin, RightPin>,
+}
+
+pub struct Dpad<U, D, L, R>
+where
+    U: InputPin,
+    D: InputPin,
+    L: InputPin,
+    R: InputPin,
+{
+    up: U,
+    down: D,
+    left: L,
+    right: R,
+}
+
+pub type UpPin = gpio::PC10<Input<PullUp>>;
+pub type DownPin = gpio::PC11<Input<PullUp>>;
+pub type LeftPin = gpio::PC12<Input<PullUp>>;
+pub type RightPin = gpio::PD2<Input<PullUp>>;
+
+impl Dpad<UpPin, DownPin, LeftPin, RightPin> {
+    pub fn up_pressed(&mut self) -> bool {
+        self.up.is_low().unwrap()
+    }
+
+    pub fn down_pressed(&mut self) -> bool {
+        self.down.is_low().unwrap()
+    }
+
+    pub fn left_pressed(&mut self) -> bool {
+        self.left.is_low().unwrap()
+    }
+
+    pub fn right_pressed(&mut self) -> bool {
+        self.right.is_low().unwrap()
+    }
 }
 
 impl Board {
@@ -41,10 +77,10 @@ impl Board {
         self.rcc
             .cfgr
             .pll_source(PllSource::HSI16)
-            .sysclk_with_pll(hal::rcc::MAX_BOOST_SYSCLK, pll_config)
-            .hclk(hal::rcc::MAX_BOOST_SYSCLK)
-            .pclk1(hal::rcc::MAX_BOOST_SYSCLK) // don't know if needed
-            .pclk2(hal::rcc::MAX_BOOST_SYSCLK)
+            .sysclk_with_pll(rcc::MAX_BOOST_SYSCLK, pll_config)
+            .hclk(rcc::MAX_BOOST_SYSCLK)
+            .pclk1(rcc::MAX_BOOST_SYSCLK) // don't know if needed
+            .pclk2(rcc::MAX_BOOST_SYSCLK)
             .freeze(&mut self.flash.acr, &mut self.pwr)
     }
 
@@ -128,8 +164,12 @@ impl Board {
         &mut self.rcc
     }
 
+    pub fn dpad(&mut self) -> &mut Dpad<UpPin, DownPin, LeftPin, RightPin> {
+        &mut self.dpad
+    }
+
     pub fn new() -> Board {
-        let peripherals = hal::pac::Peripherals::take().unwrap();
+        let peripherals = stm32hal::pac::Peripherals::take().unwrap();
         let mut rcc = peripherals.RCC.constrain();
         let flash = peripherals.FLASH.constrain();
         let pwr = peripherals.PWR.constrain(&mut rcc.apb1r1);
@@ -143,6 +183,34 @@ impl Board {
         let mut gpiog = peripherals.GPIOG.split(&mut rcc.ahb2);
 
         // GPIO config
+        let up = gpioc
+            .pc10
+            .into_pull_up_input(
+                &mut gpioc.moder,
+                &mut gpioc.pupdr
+            );
+
+        let down = gpioc
+            .pc11
+            .into_pull_up_input(
+                &mut gpioc.moder,
+                &mut gpioc.pupdr
+            );
+
+        let left = gpioc
+            .pc12
+            .into_pull_up_input(
+                &mut gpioc.moder,
+                &mut gpioc.pupdr
+            );
+
+        let right = gpiod
+            .pd2
+            .into_pull_up_input(
+                &mut gpiod.moder,
+                &mut gpiod.pupdr
+            );
+
         let display_pwr = gpioc
             .pc1
             .into_push_pull_output_with_state(
@@ -432,7 +500,7 @@ impl Board {
             .set_speed(gpio::Speed::VeryHigh);
 
         let ltdc = peripherals.LTDC.constrain(
-            hal::rcc::MAX_BOOST_SYSCLK, 
+            rcc::MAX_BOOST_SYSCLK, 
             Lcd::PIXEL_CLK_FREQ, 
             display_pwr
         );
@@ -442,6 +510,12 @@ impl Board {
             flash,
             pwr,
             ltdc,
+            dpad: Dpad {
+                up,
+                down,
+                left,
+                right,
+            },
         }
     }
 }

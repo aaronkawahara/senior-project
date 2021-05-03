@@ -21,11 +21,32 @@ fn main() -> ! {
 
     board.ltdc().pwr_pins.display_pwr_on();
     board.init_ltdc(lcd.buffer_address());
-    lcd.set_color(0x00);
+
+    let delta = 5;
+    let mut x = 0;
+    let mut y = 0;
+
 
     loop {
-        let x = 0;
-        let y = 0;
+        lcd.set_color(0x00);
+        let dpad = board.dpad();
+
+        let dx = match (dpad.left_pressed(), dpad.right_pressed()) {
+            (false, false) => 0,
+            (true, true) => 0,
+            (true, false) => -delta,
+            (false, true) => delta,
+        };
+
+        let dy = match (dpad.up_pressed(), dpad.down_pressed()) {
+            (false, false) => 0,
+            (true, true) => 0,
+            (true, false) => -delta,
+            (false, true) => delta,
+        };
+
+        x += dx;
+        y += dy;
 
         let rect: Styled<Rectangle, PrimitiveStyle<Gray8>> = egrectangle!(
             top_left = (x, y),
@@ -37,21 +58,7 @@ fn main() -> ! {
             )
         );
 
-        // lcd.half_color(0x0f);
-
         handle_draw(rect.draw(&mut lcd));
-
-        // lcd.horizontal_line(0xFF, 0);
-        // lcd.horizontal_line(0xF0, 50);
-        // lcd.horizontal_line(0x0F, 100);
-
-        // lcd.vertical_line(0xFF, 0);
-        // lcd.vertical_line(0xF0, 50);
-        // lcd.vertical_line(0x0F, 479);
-
-        // for y in 0..272 {
-        //     lcd.horizontal_line(0xFF, y);
-        // }
 
         board.ltdc().reload_shadow_reg();
         board.ltdc().wait_for_frame();
