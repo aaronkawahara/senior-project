@@ -1,22 +1,32 @@
 #![no_std]
 
-use core::{convert::TryInto, mem, u16, u32, usize};
+pub const PIXEL_CLK_FREQ: u32 = 9_000_000;
+pub const SCREEN_WIDTH: u16 = 480;
+pub const SCREEN_HEIGHT: u16 = 272;
+pub const TOTAL_PIXELS: usize = 130_560;
+pub const HBP: u16 = 40;
+pub const HFP: u16 = 5;
+pub const VBP: u16 = 8;
+pub const VFP: u16 = 8;
+pub const HSYNC_WIDTH: u16 = 1;
+pub const VSYNC_HEIGHT: u16 = 1;
+
+use core::{convert::TryInto, u16, u32, usize};
 use embedded_graphics::{drawable, DrawTarget, pixelcolor::Gray8, prelude::*};
 
-#[repr(C)]
 pub struct Lcd {
-    frame_buffer: [u8; Lcd::TOTAL_PIXELS],
+    frame_buffer: [u8; TOTAL_PIXELS],
 }
 
 impl Lcd {
     pub fn new() -> Self {
         Self { 
-            frame_buffer: [0; Lcd::TOTAL_PIXELS]
+            frame_buffer: [0; TOTAL_PIXELS]
         }
     }
 
-    pub fn buffer_address(&self) -> u32 {
-        unsafe { mem::transmute::<&u8, u32>(&self.frame_buffer[0]) }
+    pub fn first_element(&self) -> &u8 {
+        &self.frame_buffer[0]
     }
 
     pub fn buffer_size(&self) -> usize {
@@ -38,22 +48,11 @@ impl Lcd {
     }
 
     pub fn vertical_line(&mut self, color: u8, x: u32) {
-        for pixel in 0..Lcd::SCREEN_HEIGHT {
-            let index: u32 = x + pixel as u32 * Lcd::SCREEN_WIDTH as u32;
+        for pixel in 0..SCREEN_HEIGHT {
+            let index: u32 = x + pixel as u32 * SCREEN_WIDTH as u32;
             self.frame_buffer[index as usize] = color;
         }
     }
-
-    pub const PIXEL_CLK_FREQ: u32 = 9_000_000;
-    pub const SCREEN_WIDTH: u16 = 480;
-    pub const SCREEN_HEIGHT: u16 = 272;
-    pub const TOTAL_PIXELS: usize = 130_560;
-    pub const HBP: u16 = 40;
-    pub const HFP: u16 = 5;
-    pub const VBP: u16 = 8;
-    pub const VFP: u16 = 8;
-    pub const HSYNC_WIDTH: u16 = 1;
-    pub const VSYNC_HEIGHT: u16 = 1;
 }
 
 impl DrawTarget<Gray8> for Lcd {
@@ -74,6 +73,6 @@ impl DrawTarget<Gray8> for Lcd {
     }
 
     fn size(&self) -> Size {
-        Size::new(Lcd::SCREEN_WIDTH.into(), Lcd::SCREEN_HEIGHT.into())
+        Size::new(SCREEN_WIDTH.into(), SCREEN_HEIGHT.into())
     }
 }

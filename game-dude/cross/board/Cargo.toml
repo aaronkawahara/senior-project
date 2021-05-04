@@ -11,7 +11,7 @@ test = false
 
 [dependencies]
 defmt = "0.2.1"
-lcd = { path = "../lcd" }
+lcd = { path = "../../lcd" }
 stm32l4p5-hal = { path = "../../stm32l4p5-hal" }
 
 [features]

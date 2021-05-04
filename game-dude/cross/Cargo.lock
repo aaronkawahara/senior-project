@@ -243,6 +243,9 @@ dependencies = [
 [[package]]
 name = "games"
 version = "0.1.0"
+dependencies = [
+ "embedded-graphics",
+]
 
 [[package]]
 name = "generic-array"
@@ -277,8 +280,6 @@ name = "lcd"
 version = "0.1.0"
 dependencies = [
  "embedded-graphics",
- "embedded-hal",
- "stm32l4p5-hal",
 ]
 
 [[package]]

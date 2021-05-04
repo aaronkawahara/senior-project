@@ -1,6 +1,6 @@
 #![no_std]
 
-use lcd::Lcd;
+use lcd;
 use stm32l4p5_hal as stm32hal;
 use stm32hal::{
     flash::{self, FlashExt}, 
@@ -109,18 +109,18 @@ impl Board {
             .freeze();
     }
 
-    pub fn init_ltdc(&mut self, buffer_start_address: u32) {
+    pub fn init_ltdc(&mut self, first_buffer_element: &u8) {
         self.init_ltdc_clocks();
 
         self.ltdc.config_timings(
-            Lcd::HSYNC_WIDTH,
-            Lcd::VSYNC_HEIGHT,
-            Lcd::HBP,
-            Lcd::HFP,
-            Lcd::VBP,
-            Lcd::VFP,
-            Lcd::SCREEN_WIDTH,
-            Lcd::SCREEN_HEIGHT,
+            lcd::HSYNC_WIDTH,
+            lcd::VSYNC_HEIGHT,
+            lcd::HBP,
+            lcd::HFP,
+            lcd::VBP,
+            lcd::VFP,
+            lcd::SCREEN_WIDTH,
+            lcd::SCREEN_HEIGHT,
         );
 
         self.ltdc.gcr
@@ -142,9 +142,13 @@ impl Board {
             .terrie(true)
             .update_reg();
 
+        let buffer_start_address: u32 = unsafe { 
+            core::mem::transmute::<&u8, u32>(first_buffer_element) 
+        };
+
         self.ltdc.layer1.config_layer(
-            Lcd::SCREEN_WIDTH,
-            Lcd::SCREEN_HEIGHT,
+            lcd::SCREEN_WIDTH,
+            lcd::SCREEN_HEIGHT,
             pac::ltdc::layer::pfcr::PF_A::L8,
             buffer_start_address
         );
@@ -501,7 +505,7 @@ impl Board {
 
         let ltdc = peripherals.LTDC.constrain(
             rcc::MAX_BOOST_SYSCLK, 
-            Lcd::PIXEL_CLK_FREQ, 
+            lcd::PIXEL_CLK_FREQ, 
             display_pwr
         );
 

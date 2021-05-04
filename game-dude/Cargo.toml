@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "games",
+    "lcd",
     "stm32l4p5-hal",
     "stm32l4p5-pac",
     "xtask",

@@ -20,12 +20,11 @@ fn main() -> ! {
     let mut _delayer = AsmDelay::new(U32BitrateExt::hz(u32::from(clocks.sysclk())));
 
     board.ltdc().pwr_pins.display_pwr_on();
-    board.init_ltdc(lcd.buffer_address());
+    board.init_ltdc(lcd.first_element());
 
     let delta = 5;
     let mut x = 0;
     let mut y = 0;
-
 
     loop {
         lcd.set_color(0x00);
