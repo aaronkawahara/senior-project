@@ -1,8 +1,0 @@
-[package]
-authors = ["Aaron Kawahara"]
-version = "0.1.0"
-name = "button"
-edition = "2018"
-
-[dependencies]
-switch-hal = "0.3.2"
