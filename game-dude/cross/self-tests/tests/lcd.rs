@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn check_ltdc_registers(board: &mut Board) {
-        let mut lcd = Lcd::new();
+        let lcd = Lcd::new();
 
         board.ltdc().pwr_pins.display_pwr_on();
         board.init_ltdc(lcd.buffer_address());

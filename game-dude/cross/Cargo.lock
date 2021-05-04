@@ -23,12 +23,12 @@ version = "0.1.0"
 dependencies = [
  "asm-delay",
  "board",
- "button",
  "cortex-m-rt",
  "defmt",
  "defmt-rtt",
  "embedded-graphics",
  "embedded-hal",
+ "games",
  "lcd",
  "panic-probe",
  "stm32l4p5-hal",
@@ -85,13 +85,6 @@ dependencies = [
  "defmt",
  "lcd",
  "stm32l4p5-hal",
-]
-
-[[package]]
-name = "button"
-version = "0.1.0"
-dependencies = [
- "switch-hal",
 ]
 
 [[package]]
@@ -246,6 +239,10 @@ dependencies = [
  "nb 0.1.3",
  "void",
 ]
+
+[[package]]
+name = "games"
+version = "0.1.0"
 
 [[package]]
 name = "generic-array"
@@ -424,15 +421,6 @@ dependencies = [
  "bare-metal",
  "cortex-m 0.5.11",
  "vcell",
-]
-
-[[package]]
-name = "switch-hal"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92c10340167223b7e1b97a44339798d7ed28e8b6cba029fdbc0aaa395642acb7"
-dependencies = [
- "embedded-hal",
 ]
 
 [[package]]
