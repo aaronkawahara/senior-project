@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "button",
-    "xtask",
+    "games",
     "stm32l4p5-hal",
     "stm32l4p5-pac",
+    "xtask",
 ]

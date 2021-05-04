@@ -1,0 +1,5 @@
+[package]
+name = "games"
+version = "0.1.0"
+authors = ["Aaron Kawahara"]
+edition = "2018"
