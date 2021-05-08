@@ -4,8 +4,7 @@ use lcd;
 use stm32l4p5_hal as stm32hal;
 use stm32hal::{
     flash::{self, FlashExt}, 
-    gpio::{self, GpioExt, Input, PullUp}, 
-    hal::digital::v2::InputPin, 
+    gpio::{self, GpioExt, Input, PullUp},
     ltdc::{Ltdc, LtdcExt}, 
     pac, pwr::{Pwr, PwrExt}, 
     rcc::{self, Clocks, Rcc, RccExt, PllConfig, PllDivider, PllSource}};
@@ -15,44 +14,22 @@ pub struct Board {
     flash: flash::Parts,
     pwr: Pwr,
     ltdc: Ltdc,
-    dpad: Dpad<UpPin, DownPin, LeftPin, RightPin>,
+    inputs: Inputs,
 }
 
-pub struct Dpad<U, D, L, R>
+pub struct Inputs
 where
-    U: InputPin,
-    D: InputPin,
-    L: InputPin,
-    R: InputPin,
 {
-    up: U,
-    down: D,
-    left: L,
-    right: R,
+    pub up: UpPin,
+    pub down: DownPin,
+    pub left: LeftPin,
+    pub right: RightPin,
 }
 
 pub type UpPin = gpio::PC10<Input<PullUp>>;
 pub type DownPin = gpio::PC11<Input<PullUp>>;
 pub type LeftPin = gpio::PC12<Input<PullUp>>;
 pub type RightPin = gpio::PD2<Input<PullUp>>;
-
-impl Dpad<UpPin, DownPin, LeftPin, RightPin> {
-    pub fn up_pressed(&mut self) -> bool {
-        self.up.is_low().unwrap()
-    }
-
-    pub fn down_pressed(&mut self) -> bool {
-        self.down.is_low().unwrap()
-    }
-
-    pub fn left_pressed(&mut self) -> bool {
-        self.left.is_low().unwrap()
-    }
-
-    pub fn right_pressed(&mut self) -> bool {
-        self.right.is_low().unwrap()
-    }
-}
 
 impl Board {
     pub fn init_system_clocks(&mut self) -> Clocks {
@@ -168,8 +145,8 @@ impl Board {
         &mut self.rcc
     }
 
-    pub fn dpad(&mut self) -> &mut Dpad<UpPin, DownPin, LeftPin, RightPin> {
-        &mut self.dpad
+    pub fn inputs(&self) -> &Inputs {
+        &self.inputs
     }
 
     pub fn new() -> Board {
@@ -187,28 +164,28 @@ impl Board {
         let mut gpiog = peripherals.GPIOG.split(&mut rcc.ahb2);
 
         // GPIO config
-        let up = gpioc
+        let up: UpPin = gpioc
             .pc10
             .into_pull_up_input(
                 &mut gpioc.moder,
                 &mut gpioc.pupdr
             );
 
-        let down = gpioc
+        let down: DownPin = gpioc
             .pc11
             .into_pull_up_input(
                 &mut gpioc.moder,
                 &mut gpioc.pupdr
             );
 
-        let left = gpioc
+        let left: LeftPin = gpioc
             .pc12
             .into_pull_up_input(
                 &mut gpioc.moder,
                 &mut gpioc.pupdr
             );
 
-        let right = gpiod
+        let right: RightPin = gpiod
             .pd2
             .into_pull_up_input(
                 &mut gpiod.moder,
@@ -509,17 +486,19 @@ impl Board {
             display_pwr
         );
 
+        let inputs = Inputs {
+            up,
+            down,
+            left,
+            right,
+        };
+
         Board {
             rcc,
             flash,
             pwr,
             ltdc,
-            dpad: Dpad {
-                up,
-                down,
-                left,
-                right,
-            },
+            inputs,
         }
     }
 }
