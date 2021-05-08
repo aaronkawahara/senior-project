@@ -3,3 +3,9 @@ name = "games"
 version = "0.1.0"
 authors = ["Aaron Kawahara"]
 edition = "2018"
+
+[dependencies]
+embedded-graphics = "0.6.2"
+embedded-hal = { version = "0.2.4", features = [ "unproven" ] }
+lcd = { path = "../lcd" }
+rand = { version = "0.8.3", features = [ "small_rng" ], default-features = false }

@@ -4,6 +4,7 @@ pub trait Collideable<OTHER> {
     fn collides_with(&self, other: &OTHER) -> bool;
 }
 
+#[derive(Clone, Copy)]
 pub struct BoundingBox {
     top_left: Position,
     bottom_right: Position,
@@ -17,7 +18,7 @@ impl BoundingBox {
         }
     }
 
-    pub fn translate(&mut self, Position {x, y}: Position) {
+    pub fn translate(&mut self, Position {x, y}: &Position) {
         self.top_left.x += x;
         self.top_left.y += y;
         self.bottom_right.x += x;
@@ -45,7 +46,7 @@ mod tests {
             Position::new(10, 10)
         );
 
-        a.translate(Position::new(0, 0));
+        a.translate(&Position::new(0, 0));
 
         assert_eq!(a.top_left, Position::new(0, 0));
         assert_eq!(a.bottom_right, Position::new(10, 10));
@@ -58,7 +59,7 @@ mod tests {
             Position::new(10, 10)
         );
 
-        a.translate(Position {x: 10, y: 10});
+        a.translate(&Position {x: 10, y: 10});
 
         assert_eq!(a.top_left, Position::new(10, 10));
         assert_eq!(a.bottom_right, Position::new(20, 20));
@@ -71,7 +72,7 @@ mod tests {
             Position::new(10, 10)
         );
 
-        a.translate(Position {x: -10, y: -10});
+        a.translate(&Position {x: -10, y: -10});
 
         assert_eq!(a.top_left, Position::new(-10, -10));
         assert_eq!(a.bottom_right, Position::new(0, 0));
