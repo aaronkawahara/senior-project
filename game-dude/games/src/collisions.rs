@@ -24,6 +24,14 @@ impl BoundingBox {
         self.bottom_right.x += x;
         self.bottom_right.y += y;
     }
+
+    pub fn top_left(&self) -> &Position {
+        &self.top_left
+    }
+
+    pub fn bottom_right(&self) -> &Position {
+        &self.bottom_right
+    }
 }
 
 impl Collideable<BoundingBox> for BoundingBox {
