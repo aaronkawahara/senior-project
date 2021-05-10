@@ -145,8 +145,8 @@ impl Board {
         &mut self.rcc
     }
 
-    pub fn inputs(&self) -> &Inputs {
-        &self.inputs
+    pub fn inputs(&mut self) -> &mut Inputs {
+        &mut self.inputs
     }
 
     pub fn new() -> Board {

@@ -1,7 +1,7 @@
 use core::convert::Infallible;
 use embedded_hal::digital::v2::InputPin;
 
-trait DirectionalInput {
+pub trait DirectionalInput {
     fn up_pressed(&self) -> bool;
     fn down_pressed(&self) -> bool;
     fn left_pressed(&self) -> bool;

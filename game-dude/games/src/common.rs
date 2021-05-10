@@ -1,4 +1,6 @@
-use crate::graphics::Point;
+use crate::collisions::BoundingBox;
+use crate::graphics::{Point, Primitive, PrimitiveStyle, Styled, Transform};
+use lcd::RGB8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Position {
@@ -28,6 +30,39 @@ impl From<&Position> for Point {
 
 pub type Velocity = Position;
 
-pub trait MovingObject {
-    fn update_position(&mut self);
+pub type PrimitiveArt<G> = Styled<G, PrimitiveStyle<RGB8>>;
+
+#[derive(Clone, Copy)]
+pub struct MovingObject<S> {
+    pub(crate) hit_box: BoundingBox,
+    pub(crate) velocity: Velocity,
+    pub(crate) art: PrimitiveArt<S>,
+}
+
+impl<S> MovingObject<S>
+where 
+    S: Transform,
+{
+    pub fn move_to_origin(&mut self) {
+        let negated_x = -self.hit_box.top_left().x;
+        let negated_y = -self.hit_box.top_left().y;
+        let negated_posn = Position::new(negated_x, negated_y);
+
+        self.hit_box.translate(&negated_posn);
+        self.art.translate_mut(Point::from(&negated_posn));
+    }
+
+    pub fn translate(&mut self, delta: &Position) {
+        self.hit_box.translate(delta);
+        self.art.translate_mut(Point::from(delta));
+    }
+
+    pub fn update_position(&mut self) {
+        self.hit_box.translate(&self.velocity);
+        self.art.translate_mut(Point::from(&self.velocity));
+    }
+
+    pub fn set_velocity(&mut self, velocity: Velocity) {
+        self.velocity = velocity;
+    }
 }

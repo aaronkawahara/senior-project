@@ -1,4 +1,3 @@
-use defmt;
 use crate::stm32::{
     ltdc,
     LTDC,
@@ -138,7 +137,6 @@ impl Ltdc {
     ) {
         let ltdc = unsafe { &*LTDC::ptr() };
 
-        // TODO update struct values ???
         ltdc.sscr.modify(|_, w| { w
             .hsw().bits(hsync_width - 1)
             .vsh().bits(vsync_height - 1)
@@ -165,15 +163,14 @@ impl Ltdc {
 
     }
 
-    pub fn reload_shadow_reg(&self) {
-        self.srcr.set_vbr();
-    }
+    pub fn draw_and_wait(&self) -> fn () -> () {
+        move || {
+            let srcr = unsafe { &(*LTDC::ptr()).srcr };
+            let cdsr = unsafe { &(*LTDC::ptr()).cdsr };
 
-    pub fn wait_for_frame(&self) {
-        let cdsr = self.cdsr.reg();
-        
-        // while cdsr.vsyncs().is_not_active() {};
-        while cdsr.read().vsyncs().is_not_active() {};
+            srcr.modify(|_, w| { w.vbr().set_bit() });
+            while cdsr.read().vsyncs().is_not_active() {};
+        }
     }
 }
 

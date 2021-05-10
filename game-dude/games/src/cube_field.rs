@@ -1,19 +1,14 @@
 use core::u32;
 
 use crate::collisions::{BoundingBox, Collideable};
-use crate::common::{MovingObject, Position, Velocity};
-use crate::graphics::{egrectangle, egtriangle, prelude::*, Primitive, primitive_style, PrimitiveStyle, Rectangle, RGB8, Styled};
-use crate::input::DPad;
-use lcd;
+use crate::common::{MovingObject, Position, PrimitiveArt, Velocity};
+use crate::graphics::{egrectangle, egtriangle, prelude::*, Primitive, primitive_style, PrimitiveStyle, Rectangle, Styled, Triangle};
+use crate::input::{DirectionalInput, DPad};
+use lcd::{self, handle_draw, Lcd, RGB8};
 use rand::{Rng, SeedableRng, rngs::SmallRng};
-use crate::rng;
 
 #[derive(Clone, Copy)]
-struct Cube {
-    hit_box: BoundingBox,
-    velocity: Velocity,
-    art: CubeArt,
-}
+struct Cube(MovingObject<Rectangle>);
 
 impl Cube {
     const SIDE_LENGTH: i32 = 10;
@@ -24,7 +19,7 @@ impl Cube {
             top_left.y + Self::SIDE_LENGTH
         );
 
-        let art: CubeArt = egrectangle!(
+        let art: PrimitiveArt<Rectangle> = egrectangle!(
             top_left = (top_left.x, top_left.y),
             bottom_right = (bottom_right.x, bottom_right.y),
             style = primitive_style!(
@@ -34,40 +29,51 @@ impl Cube {
             )
         );
 
-        Cube {
-            hit_box: BoundingBox::new(top_left, bottom_right),
-            velocity,
-            art,
-        }
-    }
-
-    pub fn move_to_origin(&mut self) {
-        let negated_x = -self.hit_box.top_left().x;
-        let negated_y = -self.hit_box.top_left().y;
-        let negated_posn = Position::new(negated_x, negated_y);
-
-        self.hit_box.translate(&negated_posn);
-        self.art.translate_mut(Point::from(&negated_posn));
-    }
-
-    pub fn translate(&mut self, delta: &Position) {
-        self.hit_box.translate(delta);
-        self.art.translate_mut(Point::from(delta));
-    }
-
-    pub fn update_position(&mut self) {
-        self.hit_box.translate(&self.velocity);
-        self.art.translate_mut(Point::from(&self.velocity));
-    }
-
-    pub fn set_velocity(&mut self, velocity: Velocity) {
-        self.velocity = velocity;
+        Cube(
+            MovingObject {
+                hit_box: BoundingBox::new(Position::new(0, 0), bottom_right),
+                velocity,
+                art,
+            }
+        )
     }
 }
 
-// impl MovingObject for Cube {}
+struct Player(MovingObject<Triangle>);
 
-type CubeArt = Styled<Rectangle, PrimitiveStyle<RGB8>>;
+impl Player {
+    const PLAYER_WIDTH: i32 = 10;
+    const PLAYER_HEIGHT: i32 = 10;
+
+    pub fn new() -> Self {
+        let x_mid = (lcd::SCREEN_WIDTH / 2) as i32;
+        let x_min = x_mid - (Self::PLAYER_WIDTH / 2);
+        let x_max = x_min + Self::PLAYER_WIDTH;
+        let y_min = lcd::SCREEN_HEIGHT as i32;
+        let y_max = y_min - Self::PLAYER_HEIGHT;
+
+        let art: PrimitiveArt<Triangle> = egtriangle!(
+            points = [
+                (x_min, y_min), 
+                (x_max, y_min),
+                (x_mid, y_max)
+            ],
+            style = primitive_style!(
+                stroke_color = RGB8::new(RGB8::BLACK),
+                fill_color = RGB8::new(RGB8::BLUE),
+                stroke_width = 1
+            )
+        );
+
+        Player(
+            MovingObject {
+                hit_box: BoundingBox::new(Position::new(x_min, y_max), Position::new(x_max, y_min)),
+                velocity: Velocity::new(0, 0),
+                art
+            }
+        )
+    }
+}
 
 const TOTAL_CUBES: u32 = 100;
 const CUBES_PER_ROW: u32 = 10;
@@ -77,6 +83,7 @@ const ROW_WIDTH: u16 = 100;
 const LEFT_BOUND: i32 = -100;
 const RIGHT_BOUND: i32 = 580;
 const CUBE_SPEED: i32 = 10;
+const MOVEMENT_SPEED: i32 = 10;
 
 struct CubeField {
     cubes: [Cube; TOTAL_CUBES as usize],
@@ -84,23 +91,15 @@ struct CubeField {
 }
 
 impl CubeField {
-    const PLAYER_WIDTH: i32 = 10;
     const RNG_SEED: [u8; 16] = [
         57, 15, 4, 218, 230, 117, 34, 242, 173, 21, 102, 234, 23, 225, 59, 137,
         // 180, 233, 32, 108, 41, 189, 248, 144, 83, 48, 250, 211, 129, 61, 22, 137
     ];
 
     pub fn new() -> Self {
-        let x_mid = (lcd::SCREEN_WIDTH / 2) as i32;
-        let player_art = egtriangle!(
-            points = [(x_mid - (Self::PLAYER_WIDTH / 2), lcd::SCREEN_HEIGHT), ]
-        )
-
         CubeField {
             cubes: [Cube::new(Position::new(0, 0), Velocity::new(0, 0)); TOTAL_CUBES as usize],
-            player: Player {
-
-            }
+            player: Player::new()
         }
     }
 
@@ -111,26 +110,58 @@ impl CubeField {
 
             for cube in 0..CUBES_PER_ROW {
                 let i = (row * CUBES_PER_ROW + cube) as usize;
-                self.cubes[i].translate(&delta);
-                self.cubes[i].set_velocity(Velocity::new(0, -CUBE_SPEED));
+                self.cubes[i].0.translate(&delta);
+                self.cubes[i].0.set_velocity(Velocity::new(0, -CUBE_SPEED));
             }
 
             self.distribute_row(row);
         }
     }
 
+    pub fn player_collided_with_cube(&mut self) -> bool {
+        let mut collision_detected = false;
 
-    // todo maybe take input into this func for updating cube velocity before updating position
-    pub fn step(&mut self)  {
-        // move each cube based on velocity
-        // if /* cube is off screen */ {
-        //     // move row back and re-randomize
-        // }
         for cube in self.cubes.iter_mut() {
-            cube.update_position();
+            cube.0.update_position();
 
-            if cube.hit_box.collides_with(other)
+            if cube.0.hit_box.top_left().x > RIGHT_BOUND {
+                let y = cube.0.hit_box.top_left().y;
+                cube.0.move_to_origin();
+                cube.0.translate(&Position::new(LEFT_BOUND, y));
+            } else if cube.0.hit_box.top_left().x < LEFT_BOUND {
+                let y = cube.0.hit_box.top_left().y;
+                cube.0.move_to_origin();
+                cube.0.translate(&Position::new(RIGHT_BOUND - Cube::SIDE_LENGTH, y));
+            }
+
+            if cube.0.hit_box.collides_with(&self.player.0.hit_box) {
+                collision_detected = true;
+                break;
+            }
         }
+
+        collision_detected
+    }
+
+    pub fn process_input(&mut self, dpad: &DPad) {
+        let vx = match (dpad.left_pressed(), dpad.right_pressed()) {
+            (false, false) => 0,
+            (false, true) => MOVEMENT_SPEED,
+            (true, false) => -MOVEMENT_SPEED,
+            (true, true) => 0,
+        };
+
+        for cube in self.cubes.iter_mut() {
+            cube.0.set_velocity(Velocity::new(vx, 0));
+        }
+    }
+
+    pub fn render(&self, lcd: &mut Lcd) {
+        for cube in self.cubes.iter() {
+            handle_draw(cube.0.art.draw(lcd));
+        }
+
+        handle_draw(self.player.0.art.draw(lcd));
     }
 
     fn distribute_row(&mut self, row_number: u32) {
@@ -142,24 +173,23 @@ impl CubeField {
 
         for i in start_index..end_index {
             let delta = Position::new(rng.gen_range(LEFT_BOUND..RIGHT_BOUND), 0);
-            self.cubes[i].translate(&delta);
+            self.cubes[i].0.translate(&delta);
         }
     }
-
-    fn 
 }
 
-struct Player(Cube);
-
-pub fn play(dpad: DPad) {
+pub fn play(lcd: &mut Lcd, dpad: &DPad, draw_and_wait: fn () -> ()) {
     let mut cube_field = CubeField::new();
-    // cube_field.init();
+    cube_field.init();
 
-    // play loop
-    // get inputs
-    // do physics/collisions
-    // render screen
-    // repeat until game ends
+    let mut game_over = false;
+
+    while !game_over {
+        cube_field.process_input(dpad);
+        game_over = cube_field.player_collided_with_cube();
+        cube_field.render(lcd);
+        draw_and_wait();
+    }
 
     // end
     // tear down and return
