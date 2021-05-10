@@ -31,6 +31,7 @@ dependencies = [
  "games",
  "lcd",
  "panic-probe",
+ "rand",
  "stm32l4p5-hal",
 ]
 

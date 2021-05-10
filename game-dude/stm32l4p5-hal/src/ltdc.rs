@@ -172,6 +172,13 @@ impl Ltdc {
             while cdsr.read().vsyncs().is_not_active() {};
         }
     }
+
+    pub fn wait_for_frame(&self) -> fn () -> () {
+        move || {
+            let cdsr = unsafe { &(*LTDC::ptr()).cdsr };
+            while cdsr.read().vsyncs().is_not_active() {};
+        }
+    }
 }
 
 pub struct SSCR {

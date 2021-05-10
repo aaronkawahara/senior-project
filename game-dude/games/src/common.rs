@@ -57,6 +57,16 @@ where
         self.art.translate_mut(Point::from(delta));
     }
 
+    pub fn set_position(&mut self, new_position: &Position) {
+        let delta = Position::new(
+            new_position.x - self.hit_box.top_left().x, 
+            new_position.y - self.hit_box.top_left().y
+        );
+
+        self.hit_box.translate(&delta);
+        self.art.translate_mut(Point::from(&delta));
+    }
+
     pub fn update_position(&mut self) {
         self.hit_box.translate(&self.velocity);
         self.art.translate_mut(Point::from(&self.velocity));

@@ -62,19 +62,24 @@ impl Board {
     }
 
     fn init_ltdc_clocks(&mut self) {
-        // VCO_in = PLL_in / sai2m_div | 2.66MhHz <= VCO_in <= 8MHz
-        // 8Mhz = 16MHz / sai2m_div
-        let sai2m_div: u8 = 2;
+        // // VCO_in = PLL_in / sai2m_div | 2.66MhHz <= VCO_in <= 8MHz
+        // // 8Mhz = 16MHz / sai2m_div
+        // let sai2m_div: u8 = 2;
         
-        // VCO_out = VCO_in * sai2n_mult | 64MHz <= VCO_out <= 344MHz
-        // 72MHz = 8MHz * sai2n_mult
-        let sai2n_mult: u8 = 9;
+        // // VCO_out = VCO_in * sai2n_mult | 64MHz <= VCO_out <= 344MHz
+        // // 192MHz = 8MHz * sai2n_mult
+        // let sai2n_mult: u8 = 24;
 
-        // PLLSAI2_R = VCO_out / lcd_div | target = 18MHz (hardware restriction)
-        // 18MHz = 72Mhz / lcd_div
-        let lcd_div = pac::rcc::pllsai2cfgr::PLLSAI2R_A::DIV4;
+        // // PLLSAI2_R = VCO_out / lcd_div | target = 18MHz (hardware restriction)
+        // // 24MHz = 192MHz / lcd_div
+        // let lcd_div = pac::rcc::pllsai2cfgr::PLLSAI2R_A::DIV8;
 
-        // LTDC_CLK = PLLSAI2_R / divr | LTDC_CLK <= 12Mhz (hardware restriction)
+        // // LTDC_CLK = PLLSAI2_R / divr | LTDC_CLK <= 12Mhz (hardware restriction)
+        // let sai2_divr: u8 = 0;
+
+        let sai2m_div: u8 = 2;
+        let sai2n_mult: u8 = 10;
+        let lcd_div = pac::rcc::pllsai2cfgr::PLLSAI2R_A::DIV8;
         let sai2_divr: u8 = 0;
 
         self.rcc.pllsai2cfgr
