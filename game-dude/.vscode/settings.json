@@ -2,5 +2,6 @@
     "rust-analyzer.linkedProjects": [
         "Cargo.toml",
         "cross/Cargo.toml",
-    ]
+    ],
+    "python.pythonPath": "C:\\Users\\Aaron\\AppData\\Local\\Programs\\Python\\Python39\\python.exe"
 }
