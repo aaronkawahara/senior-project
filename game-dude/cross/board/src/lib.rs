@@ -2,12 +2,7 @@
 
 use lcd;
 use stm32l4p5_hal as stm32hal;
-use stm32hal::{
-    flash::{self, FlashExt}, 
-    gpio::{self, GpioExt, Input, PullUp},
-    ltdc::{Ltdc, LtdcExt}, 
-    pac, pwr::{Pwr, PwrExt}, 
-    rcc::{self, Clocks, Rcc, RccExt, PllConfig, PllDivider, PllSource}};
+use stm32hal::{dma2d::{self, Dma2d, Dma2dExt}, flash::{self, FlashExt}, gpio::{self, GpioExt, Input, PullUp}, ltdc::{Ltdc, LtdcExt}, pac, pwr::{Pwr, PwrExt}, rcc::{self, Clocks, Rcc, RccExt, PllConfig, PllDivider, PllSource}};
 
 pub struct Board {
     rcc: Rcc,
@@ -15,6 +10,7 @@ pub struct Board {
     pwr: Pwr,
     ltdc: Ltdc,
     inputs: Inputs,
+    dma2d: Option<Dma2d>,
 }
 
 pub struct Inputs
@@ -140,6 +136,17 @@ impl Board {
         self.ltdc.layer1.enable_layer();
         self.ltdc.srcr.set_imr();
         self.ltdc.gcr.ltdcen(true).update_reg();
+    }
+
+    pub fn init_dma2d(&mut self, first_buffer_element: &u8) -> Dma2d {
+        self.dma2d.as_mut().unwrap().init(
+            pac::dma2d::cr::MODE_A::REGISTERTOMEMORY, 
+            pac::dma2d::opfccr::CM_A::ARGB8888, 
+            lcd::SCREEN_WIDTH,
+            unsafe { core::mem::transmute::<&u8, u32>(first_buffer_element) }
+        );
+
+        self.dma2d.take().unwrap()
     }
 
     pub fn ltdc(&mut self) -> &mut Ltdc {
@@ -491,6 +498,8 @@ impl Board {
             display_pwr
         );
 
+        let dma2d = peripherals.DMA2D.constrain();
+
         let inputs = Inputs {
             up,
             down,
@@ -504,6 +513,7 @@ impl Board {
             pwr,
             ltdc,
             inputs,
+            dma2d: Some(dma2d),
         }
     }
 }

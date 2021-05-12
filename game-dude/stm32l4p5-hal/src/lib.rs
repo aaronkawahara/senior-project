@@ -8,6 +8,7 @@ pub use pac as stm32;
 // pub use self::pac::interrupt;
 
 // peripheral exports
+pub mod dma2d;
 pub mod gpio;
 pub mod rcc;
 pub mod prelude;
