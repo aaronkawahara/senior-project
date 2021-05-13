@@ -35,7 +35,7 @@ const ROWS: u16 = 3;
 const ROW_SPACE: u16 = 200;
 const CUBE_SPEED: i32 = 7;
 const MOVEMENT_SPEED: i32 = 15;
-const BACKGROUND_COLOR: u32 = 0x00_00_00_00;
+const BACKGROUND_COLOR: u32 = 0xff_ff_ff_ff;
 const QUARTER_WIDTH: u16 = 120;
 
 type Cube = MovingObject<CubeImage>;

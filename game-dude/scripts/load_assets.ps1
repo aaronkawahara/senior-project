@@ -1,11 +1,6 @@
 cd D:\Projects\senior-project\game-dude\scripts
-python3 .\bmp_converter.py
-1
-mv .\bmp\rgb332\*.bmp D:\Projects\senior-project\game-dude\games\assets
-cd D:\Projects\senior-project\game-dude
-$file_names = Get-ChildItem -Path D:\Projects\senior-project\game-dude\games\assets\*.bmp -Name
-foreach ($fname in $file_names) {
-    python3 .\scripts\make_array_from_bmp.py -i .\scripts\bmp\$fname -o .\games\src\images.rs
-}
-
-
+1 | python3 .\bmp_converter.py
+rm ..\cross\games\assets\*.bmp
+mv .\bmp\rgb332\*.bmp ..\cross\games\assets
+$files = (ls ..\cross\games\assets\*.bmp).FullName -join(' ')
+python3 .\make_array_from_bmp.py -o ..\cross\games\src\images.rs $files
