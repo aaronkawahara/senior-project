@@ -2,7 +2,7 @@
 
 use lcd;
 use stm32l4p5_hal as stm32hal;
-use stm32hal::{dma2d::{self, Dma2d, Dma2dExt}, flash::{self, FlashExt}, gpio::{self, GpioExt, Input, PullUp}, ltdc::{Ltdc, LtdcExt}, pac, pwr::{Pwr, PwrExt}, rcc::{self, Clocks, Rcc, RccExt, PllConfig, PllDivider, PllSource}};
+use stm32hal::{dma2d::{Dma2d, Dma2dExt}, flash::{self, FlashExt}, gpio::{self, GpioExt, Input, PullUp}, ltdc::{Ltdc, LtdcExt}, pac, pwr::{Pwr, PwrExt}, rcc::{self, Clocks, Rcc, RccExt, PllConfig, PllDivider, PllSource}};
 
 pub struct Board {
     rcc: Rcc,
@@ -97,8 +97,8 @@ impl Board {
             lcd::HFP,
             lcd::VBP,
             lcd::VFP,
-            lcd::SCREEN_WIDTH,
-            lcd::SCREEN_HEIGHT,
+            lcd::SCREEN_WIDTH_U16,
+            lcd::SCREEN_HEIGHT_U16,
         );
 
         self.ltdc.gcr
@@ -125,8 +125,8 @@ impl Board {
         };
 
         self.ltdc.layer1.config_layer(
-            lcd::SCREEN_WIDTH,
-            lcd::SCREEN_HEIGHT,
+            lcd::SCREEN_WIDTH_U16,
+            lcd::SCREEN_HEIGHT_U16,
             pac::ltdc::layer::pfcr::PF_A::L8,
             buffer_start_address
         );
@@ -141,7 +141,7 @@ impl Board {
     pub fn init_dma2d(&mut self, first_buffer_element: &u8) -> Dma2d {
         self.dma2d.as_mut().unwrap().init(
             pac::dma2d::cr::MODE_A::REGISTERTOMEMORY,
-            lcd::SCREEN_WIDTH,
+            lcd::SCREEN_WIDTH_U16,
             unsafe { core::mem::transmute::<&u8, u32>(first_buffer_element) }
         );
 

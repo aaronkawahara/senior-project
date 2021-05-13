@@ -5,8 +5,17 @@ authors = ["Aaron Kawahara"]
 edition = "2018"
 
 [dependencies]
+defmt = "0.2.1"
 embedded-graphics = "0.6.2"
 embedded-hal = { version = "0.2.4", features = [ "unproven" ] }
 lcd = { path = "../../lcd" }
 rand = { version = "0.8.3", features = [ "small_rng" ], default-features = false }
 stm32l4p5-hal = { path = "../../stm32l4p5-hal" }
+
+[features]
+defmt-default = []
+defmt-trace = []
+defmt-debug = []
+defmt-info = []
+defmt-warn = []
+defmt-error = []

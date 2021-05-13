@@ -245,6 +245,7 @@ dependencies = [
 name = "games"
 version = "0.1.0"
 dependencies = [
+ "defmt",
  "embedded-graphics",
  "embedded-hal",
  "lcd",

@@ -1,28 +1,30 @@
-pub struct Image {
-    height: u16,
-    width: u16,
-    data: &'static [u8],
+pub trait SimpleImage {
+    const HEIGHT: u16;
+    const WIDTH: u16;
+
+    fn data_address(&self) -> u32;
+    fn data_address_offset(&self, x: u16, y: u16) -> u32 {
+        self.data_address() + (x + y * Self::WIDTH) as u32
+    }
 }
 
-impl Image {
-    pub fn new(height: u16, width: u16, data: &'static [u8]) -> Self {
-        Image {
-            height,
-            width,
-            data,
-        }
+#[derive(Clone, Copy)]
+pub struct PlayerImage;
+impl SimpleImage for PlayerImage {
+    const HEIGHT: u16 = CUBE_IMAGE_HEIGHT;
+    const WIDTH: u16 = CUBE_IMAGE_WIDTH;
+    fn data_address(&self) -> u32 {
+        unsafe { core::mem::transmute::<&u8, u32>(&CUBE_IMAGE_DATA[0]) }
     }
+}
 
-    pub fn height(&self) -> u16 {
-        self.height
-    }
-
-    pub fn width(&self) -> u16 {
-        self.width
-    }
-
-    pub fn data_address(&self) -> u32 {
-      unsafe { core::mem::transmute::<&u8, u32>(&self.data[0]) }
+#[derive(Clone, Copy)]
+pub struct CubeImage;
+impl SimpleImage for CubeImage {
+    const HEIGHT: u16 = CUBE_IMAGE_HEIGHT;
+    const WIDTH: u16 = CUBE_IMAGE_WIDTH;
+    fn data_address(&self) -> u32 {
+        unsafe { core::mem::transmute::<&u8, u32>(&CUBE_IMAGE_DATA[0]) }
     }
 }
 

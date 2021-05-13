@@ -85,7 +85,7 @@ mod tests {
         let expected_pllsai2cfgr: u32 = 0x07000a10;
         assert_eq!(expected_pllsai2cfgr, rcc.pllsai2cfgr.read_reg());
 
-        let ltdc = unsafe { &(*pac::LTDC::ptr()) };
+        // let ltdc = unsafe { &(*pac::LTDC::ptr()) };
 
         // let expected_sscr: u32 = 0x0;
         // assert_eq!(expected_sscr, ltdc.sscr.read().bits());
@@ -106,7 +106,7 @@ mod tests {
     #[test]
     fn test_dma2d_registers(board: &mut Board) {
         let lcd = Lcd::new();
-        let dma2d_p = board.init_dma2d(lcd.first_element());
+        board.init_dma2d(lcd.first_element());
         let dma2d = unsafe { &(*pac::DMA2D::ptr()) };
 
         let expected_cr: u32 = 0x00030000;

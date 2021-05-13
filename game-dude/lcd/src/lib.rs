@@ -1,8 +1,12 @@
 #![no_std]
 
 pub const PIXEL_CLK_FREQ: u32 = 9_000_000;
-pub const SCREEN_WIDTH: u16 = 480;
-pub const SCREEN_HEIGHT: u16 = 272;
+pub const SCREEN_WIDTH_U16: u16 = 480;
+pub const SCREEN_HEIGHT_U16: u16 = 272;
+pub const SCREEN_WIDTH_U32: u32 = 480;
+pub const SCREEN_HEIGHT_U32: u32 = 272;
+pub const SCREEN_WIDTH_I32: i32 = 480;
+pub const SCREEN_HEIGHT_I32: i32 = 272;
 pub const TOTAL_PIXELS: usize = 130_560;
 pub const QUARTER_PIXELS: usize = 32_640;
 pub const HBP: u16 = 40;
@@ -12,13 +16,17 @@ pub const VFP: u16 = 8;
 pub const HSYNC_WIDTH: u16 = 1;
 pub const VSYNC_HEIGHT: u16 = 1;
 
-use core::{convert::TryInto, u16, u32, usize};
+use core::{convert::TryInto, i32, u16, u32, usize};
 
 use core::convert::Infallible;
 pub use embedded_graphics::{
-    drawable::Pixel, egcircle, egline, egrectangle, egtext, egtriangle, pixelcolor::raw::RawU8, prelude::{self, *}, 
-    primitive_style, primitives::{Rectangle, Triangle},
-    style::{PrimitiveStyle, Styled}
+    drawable::Pixel,
+    egcircle, egline, egrectangle, egtext, egtriangle,
+    pixelcolor::raw::RawU8,
+    prelude::{self, *},
+    primitive_style,
+    primitives::{Rectangle, Triangle},
+    style::{PrimitiveStyle, Styled},
 };
 
 pub struct Lcd {
@@ -27,8 +35,8 @@ pub struct Lcd {
 
 impl Lcd {
     pub fn new() -> Self {
-        Self { 
-            frame_buffer: [0; TOTAL_PIXELS]
+        Self {
+            frame_buffer: [0; TOTAL_PIXELS],
         }
     }
 
@@ -55,8 +63,8 @@ impl Lcd {
     }
 
     pub fn vertical_line(&mut self, color: u8, x: u32) {
-        for pixel in 0..SCREEN_HEIGHT {
-            let index: u32 = x + pixel as u32 * SCREEN_WIDTH as u32;
+        for pixel in 0..SCREEN_HEIGHT_U32 {
+            let index: u32 = x + pixel as u32 * SCREEN_WIDTH_U32;
             self.frame_buffer[index as usize] = color;
         }
     }
@@ -71,7 +79,7 @@ impl DrawTarget<RGB8> for Lcd {
         if 0 <= x && x < 479 && 0 <= y && y < 271 {
             let x_: usize = x.try_into().unwrap();
             let y_: usize = y.try_into().unwrap();
-            
+
             let index: usize = x_ + y_ * 480;
             self.frame_buffer[index] = color.rgb();
         }
@@ -80,7 +88,7 @@ impl DrawTarget<RGB8> for Lcd {
     }
 
     fn size(&self) -> Size {
-        Size::new(SCREEN_WIDTH.into(), SCREEN_HEIGHT.into())
+        Size::new(SCREEN_WIDTH_U32, SCREEN_HEIGHT_U32)
     }
 }
 
