@@ -4,6 +4,7 @@ pub const PIXEL_CLK_FREQ: u32 = 9_000_000;
 pub const SCREEN_WIDTH: u16 = 480;
 pub const SCREEN_HEIGHT: u16 = 272;
 pub const TOTAL_PIXELS: usize = 130_560;
+pub const QUARTER_PIXELS: usize = 32_640;
 pub const HBP: u16 = 40;
 pub const HFP: u16 = 5;
 pub const VBP: u16 = 8;
@@ -40,8 +41,8 @@ impl Lcd {
     }
 
     pub fn set_color(&mut self, color: u8) {
-        for pixel in 0..self.frame_buffer.len() {
-            self.frame_buffer[pixel] = color;
+        for pixel in self.frame_buffer.iter_mut() {
+            *pixel = color;
         }
     }
 

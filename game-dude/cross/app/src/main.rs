@@ -26,12 +26,14 @@ fn main() -> ! {
     let wait_for_frame = board.ltdc().wait_for_frame();
     let draw_and_wait = board.ltdc().draw_and_wait();
 
+    let mut dma2d = board.init_dma2d(lcd.first_element());
+
     let inputs = board.inputs();
     let mut dpad = DPad::new(&inputs.up, &inputs.down, &inputs.left, &inputs.right);
 
     let mut rng = SmallRng::from_seed(RNG_SEED);
 
     loop {
-        cube_field::play(&mut lcd, &mut dpad, &mut rng, draw_and_wait);
+        cube_field::play(&mut lcd, &mut dpad, &mut dma2d, &mut rng, draw_and_wait);
     }
 }

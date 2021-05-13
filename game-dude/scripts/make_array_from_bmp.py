@@ -49,9 +49,9 @@ def write_array_to_file(fname, image_name, width, height, pixel_data):
     image_name = image_name.split("\\")[-1][0: -4].upper()
 
     with open(fname, 'a') as f:
-        f.write("const {}_IMAGE_WIDTH: u16 = {:d};\n".format(image_name, width))
-        f.write("const {}_IMAGE_HEIGHT: u16 = {:d};\n".format(image_name, height))
-        f.write("static {}_IMAGE_DATA: [u8; {:d}] = [\n".format(image_name, array_len))
+        f.write("pub const {}_IMAGE_WIDTH: u16 = {:d};\n".format(image_name, width))
+        f.write("pub const {}_IMAGE_HEIGHT: u16 = {:d};\n".format(image_name, height))
+        f.write("pub static {}_IMAGE_DATA: [u8; {:d}] = [\n".format(image_name, array_len))
 
         for curr_line in range(total_lines):
             f.write(indent)

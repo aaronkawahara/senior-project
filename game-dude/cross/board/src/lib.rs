@@ -140,8 +140,7 @@ impl Board {
 
     pub fn init_dma2d(&mut self, first_buffer_element: &u8) -> Dma2d {
         self.dma2d.as_mut().unwrap().init(
-            pac::dma2d::cr::MODE_A::REGISTERTOMEMORY, 
-            pac::dma2d::opfccr::CM_A::ARGB8888, 
+            pac::dma2d::cr::MODE_A::REGISTERTOMEMORY,
             lcd::SCREEN_WIDTH,
             unsafe { core::mem::transmute::<&u8, u32>(first_buffer_element) }
         );

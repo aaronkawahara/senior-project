@@ -1,12 +1,12 @@
-pub struct image {
+pub struct Image {
     height: u16,
     width: u16,
     data: &'static [u8],
 }
 
-impl image {
+impl Image {
     pub fn new(height: u16, width: u16, data: &'static [u8]) -> Self {
-        image {
+        Image {
             height,
             width,
             data,
@@ -21,14 +21,14 @@ impl image {
         self.width
     }
 
-    pub fn data(&self) -> &[u8] {
-        self.data
+    pub fn data_address(&self) -> u32 {
+      unsafe { core::mem::transmute::<&u8, u32>(&self.data[0]) }
     }
 }
 
-const CUBE_IMAGE_WIDTH: u16 = 50;
-const CUBE_IMAGE_HEIGHT: u16 = 50;
-static CUBE_IMAGE_DATA: [u8; 2500] = [
+pub const CUBE_IMAGE_WIDTH: u16 = 50;
+pub const CUBE_IMAGE_HEIGHT: u16 = 50;
+pub static CUBE_IMAGE_DATA: [u8; 2500] = [
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 
       0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 229, 229, 229, 229, 229, 229, 

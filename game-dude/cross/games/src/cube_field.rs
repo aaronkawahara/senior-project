@@ -1,32 +1,40 @@
 use crate::collisions::{BoundingBox, Collideable};
 use crate::common::{MovingObject, Position, PrimitiveArt, Velocity};
 use crate::graphics::{egrectangle, egtriangle, prelude::*, Primitive, primitive_style, PrimitiveStyle, Rectangle, Styled, Triangle};
+use crate::images::{self, Image};
 use crate::input::{DirectionalInput, DPad};
 use lcd::{self, handle_draw, Lcd, RGB8};
 use rand::{Rng, rngs::SmallRng};
+use stm32l4p5_hal::dma2d::Dma2d;
 
-pub fn play(lcd: &mut Lcd, dpad: &DPad, rng: &mut SmallRng, draw_and_wait: fn () -> ()) {
+pub fn play(lcd: &mut Lcd, dpad: &DPad, dma2d: &mut Dma2d, rng: &mut SmallRng, draw_and_wait: fn () -> ()) {
     let mut cube_field = CubeField::new();
     cube_field.init(rng);
 
     let mut game_over = false;
 
     while !game_over {
-        game_over = cube_field.process_frame(lcd, dpad, rng);
+        game_over = cube_field.process_frame(lcd, dpad, dma2d, rng);
         draw_and_wait();
     }
+
+    lcd.set_color(RGB8::BLACK);
 }
 
-const TOTAL_CUBES: u16 = 12;
-const CUBES_PER_ROW: u16 = 3;
-const ROWS: u16 = 4;
+const TOTAL_CUBES: u16 = 15;
+const CUBES_PER_ROW: u16 = 5;
+const ROWS: u16 = 3;
 const ROW_SPACE: u16 = 200;
-const LEFT_BOUND: i32 = -50;
-const RIGHT_BOUND: i32 = 430;
-const TOP_BOUND: i32 = -50;
-const BOTTOM_BOUND: i32 = 222;
-const CUBE_SPEED: i32 = 5;
-const MOVEMENT_SPEED: i32 = 10;
+const LEFT_BOUND: i32 = 0;
+const RIGHT_BOUND: i32 = 480;
+const TOP_BOUND: i32 = 0;
+const BOTTOM_BOUND: i32 = 272;
+const CUBE_SPEED: i32 = 7;
+const MOVEMENT_SPEED: i32 = 15;
+
+const BACKGROUND_COLOR: u32 = 0x00_00_00_00;
+const QUARTER_WIDTH: u16 = 120;
+const QAURTER_HEIGHT: u16 = 68;
 
 struct CubeField {
     cubes: [Cube; TOTAL_CUBES as usize],
@@ -74,16 +82,22 @@ impl CubeField {
     fn randomize_position(cube: &mut Cube, rng: &mut SmallRng) {
         let new_position = Position::new(
             rng.gen_range(Self::X_MIN..Self::X_MAX),
-            cube.0.hit_box.top_left().y - (ROW_SPACE * ROWS) as i32
+            cube.0.hit_box.top_left().y - (ROW_SPACE * (ROWS + 1)) as i32
         );
 
         cube.0.set_position(&new_position);
     }
 
-    pub fn process_frame(&mut self, lcd: &mut Lcd, dpad: &DPad, rng: &mut SmallRng) -> bool {
-        let mut game_over = false;
+    pub fn process_frame(&mut self, lcd: &mut Lcd, dpad: &DPad, dma2d: &mut Dma2d, rng: &mut SmallRng) -> bool {
+        dma2d.fill_background(BACKGROUND_COLOR, QUARTER_WIDTH, lcd::SCREEN_HEIGHT);
 
-        // lcd.set_color(RGB8::BLACK);
+        let mut game_over = false;
+        
+        let cube_image = Image::new(
+            images::CUBE_IMAGE_HEIGHT, 
+            images::CUBE_IMAGE_WIDTH, 
+            &images::CUBE_IMAGE_DATA
+        );
 
         let vx = match (dpad.left_pressed(), dpad.right_pressed()) {
             (false, false) => 0,
@@ -101,8 +115,17 @@ impl CubeField {
                     game_over = true;
                     break;
                 }
+        
+                let top_left = cube.0.hit_box.top_left();
 
-                handle_draw(cube.0.art.draw(lcd));
+                // handle_draw(cube.0.art.draw(lcd));
+                dma2d.draw_rgb8_image(
+                    cube_image.data_address(), 
+                    top_left.x.clamp(0, lcd::SCREEN_WIDTH as i32) as u32, 
+                    top_left.y.clamp(0, lcd::SCREEN_HEIGHT as i32) as u32, 
+                    cube_image.width(),
+                    cube_image.height()
+                );
             } else if cube.0.hit_box.top_left().y > lcd::SCREEN_HEIGHT as i32 {
                 Self::randomize_position(cube, rng)
             }
@@ -151,7 +174,7 @@ impl Cube {
             bottom_right = (bottom_right.x, bottom_right.y),
             style = primitive_style!(
                 stroke_color = RGB8::new(RGB8::BLACK),
-                fill_color = RGB8::new(RGB8::BLUE),
+                fill_color = RGB8::new(RGB8::RED),
                 stroke_width = 1
             )
         );

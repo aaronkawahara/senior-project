@@ -24,8 +24,7 @@ pub struct Dma2d {
 impl Dma2d {
     pub fn init(
         &mut self, 
-        mode: dma2d::cr::MODE_A, 
-        reg_color_mode: dma2d::opfccr::CM_A,
+        mode: dma2d::cr::MODE_A,
         display_width: u16,
         buffer_start_address: u32
     ) {
@@ -35,9 +34,6 @@ impl Dma2d {
         let rcc =  unsafe { &*RCC::ptr() };
         rcc.ahb1enr.modify(|_, w| { w.dma2den().set_bit() });
         while rcc.ahb1enr.read().dma2den().bit_is_clear() {}
-        defmt::debug!("dma2d clock is on");
-
-        self.registers.cr.modify(|_, w| { w.mode().variant(mode) });
     }
 
     pub fn fill_background(&self, argb: u32, width: u16, height: u16) {
@@ -58,6 +54,30 @@ impl Dma2d {
             w.bits(self.buffer_address.unwrap()) 
         });
         self.registers.ocolr.modify(|_, w| unsafe { w.bits(argb) });
+        self.registers.cr.modify(|_, w| { w.start().set_bit() });
+    }
+
+    pub fn draw_rgb8_image(&self, image_address: u32, x: u32, y: u32, width: u16, height: u16) {
+        while self.registers.cr.read().start().bit_is_set() {}
+
+        self.registers.cr.modify(|_, w| { 
+            w.mode().variant(dma2d::cr::MODE_A::MEMORYTOMEMORY) 
+        });
+        self.registers.fgmar.modify(|_, w| unsafe {
+            w.bits(image_address) 
+        });
+        self.registers.omar.modify(|_, w| unsafe { 
+            w.bits(self.buffer_address.unwrap() + (x + y * (self.display_width.unwrap() as u32))) 
+        });
+        self.registers.fgpfccr.modify(|_, w| { w.cm().l8() });
+        self.registers.nlr.modify(|_, w| { w
+            .pl().bits(width)
+            .nl().bits(height)
+        });
+        self.registers.fgor.modify(|_, w| unsafe { w.lo().bits(0) });
+        self.registers.oor.modify(|_, w| unsafe { 
+            w.lo().bits(self.display_width.unwrap() - width)
+        });
         self.registers.cr.modify(|_, w| { w.start().set_bit() });
     }
 }
