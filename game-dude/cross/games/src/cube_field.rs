@@ -17,23 +17,23 @@ pub fn play(
     draw_and_wait: fn() -> (),
 ) {
     let mut cube_field = CubeField::new();
-    cube_field.init(rng);
+    cube_field.randomize_field(rng);
 
     let mut game_over = false;
 
     while !game_over {
-        game_over = cube_field.process_frame(lcd, dpad, dma2d, rng);
+        game_over = cube_field.process_frame(dpad, dma2d, rng, RandomReposition);
         draw_and_wait();
     }
 
     dma2d.fill_background(BACKGROUND_COLOR, QUARTER_WIDTH, lcd::SCREEN_HEIGHT_U16);
 }
 
-const TOTAL_CUBES: u16 = 15;
+const TOTAL_CUBES: u16 = 25;
 const CUBES_PER_ROW: u16 = 5;
-const ROWS: u16 = 3;
-const ROW_SPACE: u16 = 200;
-const CUBE_SPEED: i32 = 7;
+const ROWS: u16 = 5;
+const ROW_SPACE: u16 = 150;
+const BASE_CUBE_SPEED: i32 = 5;
 const MOVEMENT_SPEED: i32 = 15;
 const BACKGROUND_COLOR: u32 = 0xff_ff_ff_ff;
 const QUARTER_WIDTH: u16 = 120;
@@ -44,6 +44,7 @@ type Player = MovingObject<PlayerImage>;
 struct CubeField {
     cubes: [Cube; TOTAL_CUBES as usize],
     player: Player,
+    score: u32,
 }
 
 impl CubeField {
@@ -70,10 +71,11 @@ impl CubeField {
         CubeField {
             cubes: [Cube::new(cube_hit_box, Velocity::default(), CubeImage); TOTAL_CUBES as usize],
             player: Player::new(player_hit_box, Velocity::default(), PlayerImage),
+            score: 0
         }
     }
 
-    pub fn init(&mut self, rng: &mut SmallRng) {
+    pub fn randomize_field(&mut self, rng: &mut SmallRng) {
         for row in 0..ROWS {
             let y = -((ROW_SPACE * row + 100) as i32);
             let delta = Position::new(0, y);
@@ -81,20 +83,23 @@ impl CubeField {
             for cube in 0..CUBES_PER_ROW {
                 let i = (row * CUBES_PER_ROW + cube) as usize;
                 self.cubes[i].hit_box.translate(&delta);
-                self.cubes[i].set_velocity(Velocity::new(0, CUBE_SPEED));
+                self.cubes[i].set_velocity(Velocity::new(0, BASE_CUBE_SPEED));
             }
 
             self.distribute_row(row as u32, rng);
         }
     }
 
-    pub fn process_frame(
+    pub fn process_frame<R>(
         &mut self,
-        lcd: &mut Lcd,
         dpad: &DPad,
         dma2d: &mut Dma2d,
         rng: &mut SmallRng,
-    ) -> bool {
+        reposition_state: R
+    ) -> bool 
+    where
+        R: CubeReposition,
+    {
         dma2d.fill_background(BACKGROUND_COLOR, QUARTER_WIDTH, lcd::SCREEN_HEIGHT_U16);
 
         let mut game_over = false;
@@ -107,7 +112,7 @@ impl CubeField {
         };
 
         for cube in self.cubes.iter_mut() {
-            cube.set_velocity(Velocity::new(vx, CUBE_SPEED));
+            cube.set_velocity(Velocity::new(vx, BASE_CUBE_SPEED));
             Self::update_cube_position(cube);
 
             if Self::object_on_screen(&cube.hit_box) {
@@ -141,7 +146,8 @@ impl CubeField {
                     cropped_box.height() as u16,
                 );
             } else if cube.hit_box.top_left.y > lcd::SCREEN_HEIGHT_I32 {
-                Self::randomize_position(cube, rng)
+                reposition_state.reposition_cube(cube, rng);
+                // Self::randomize_position(cube, rng)
             }
         }
 
@@ -171,7 +177,7 @@ impl CubeField {
     fn randomize_position(cube: &mut Cube, rng: &mut SmallRng) {
         let new_position = Position::new(
             rng.gen_range(Self::X_MIN..Self::X_MAX),
-            cube.hit_box.top_left.y - (ROW_SPACE * (ROWS + 1)) as i32,
+            cube.hit_box.top_left.y - (ROW_SPACE * ROWS) as i32,
         );
 
         cube.hit_box.translate_to(&new_position);
@@ -201,4 +207,24 @@ impl CubeField {
             &cube.hit_box
         }
     }
+}
+
+trait CubeReposition {
+    fn reposition_cube(&self, cube: &mut Cube, rng: &mut SmallRng);
+}
+
+struct RandomReposition;
+impl CubeReposition for RandomReposition {
+    fn reposition_cube(&self, cube: &mut Cube, rng: &mut SmallRng) {
+        let new_position = Position::new(
+            rng.gen_range(CubeField::X_MIN..CubeField::X_MAX),
+            cube.hit_box.top_left.y - (ROW_SPACE * ROWS) as i32,
+        );
+    
+        cube.hit_box.translate_to(&new_position);   
+    }
+}
+
+struct StartTransition {
+    
 }
