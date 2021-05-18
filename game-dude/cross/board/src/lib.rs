@@ -29,6 +29,8 @@ pub type RightPin = gpio::PD2<Input<PullUp>>;
 
 impl Board {
     pub fn init_system_clocks(&mut self) -> Clocks {
+        defmt::info!("working in board");
+
         // VCO_in = PLL_in / pllm | 2.66MhHz <= VCO_in <= 8MHz
         // 8Mhz = 16MHz / pllm
         let pllm: u8 = 2;

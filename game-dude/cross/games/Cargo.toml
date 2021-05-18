@@ -4,6 +4,11 @@ version = "0.1.0"
 authors = ["Aaron Kawahara"]
 edition = "2018"
 
+[lib]
+bench = false
+doctest = false
+test = false
+
 [dependencies]
 defmt = "0.2.1"
 embedded-graphics = "0.6.2"
@@ -13,6 +18,7 @@ rand = { version = "0.8.3", features = [ "small_rng" ], default-features = false
 stm32l4p5-hal = { path = "../../stm32l4p5-hal" }
 
 [features]
+default = ['defmt-trace']
 defmt-default = []
 defmt-trace = []
 defmt-debug = []

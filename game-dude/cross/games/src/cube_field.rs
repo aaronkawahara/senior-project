@@ -1,28 +1,21 @@
+use crate::collisions::{BoundingBox, Collideable};
 use crate::common::{MovingObject, Position, Velocity};
+use crate::images::SimpleImage;
 use crate::images::{CubeImage, PlayerImage};
 use crate::input::{DPad, DirectionalInput};
-use crate::{
-    collisions::{BoundingBox, Collideable},
-    images::SimpleImage,
-};
+use crate::rng;
+
+use defmt;
 use lcd::{self, Lcd};
-use rand::{rngs::SmallRng, Rng};
 use stm32l4p5_hal::dma2d::Dma2d;
 
-pub fn play(
-    lcd: &mut Lcd,
-    dpad: &DPad,
-    dma2d: &mut Dma2d,
-    rng: &mut SmallRng,
-    draw_and_wait: fn() -> (),
-) -> u32 {
+pub fn play(lcd: &mut Lcd, dpad: &DPad, dma2d: &mut Dma2d, draw_and_wait: fn() -> ()) -> u32 {
     let mut cube_field = CubeField::new();
-    cube_field.randomize_field(rng);
-
     let mut game_over = false;
+    rng::init_rng();
 
     while !game_over {
-        game_over = cube_field.process_frame(dpad, dma2d, rng);
+        game_over = cube_field.process_frame(dpad, dma2d);
         draw_and_wait();
     }
 
@@ -30,11 +23,10 @@ pub fn play(
     cube_field.score
 }
 
-const TOTAL_CUBES: u16 = 25;
-const CUBES_PER_ROW: u16 = 5;
-const ROWS: u16 = 5;
-const ROW_SPACE: u16 = 150;
-const BASE_CUBE_SPEED: i32 = 5;
+const TOTAL_CUBES: u16 = 30;
+const CUBES_PER_ROW: u16 = 3;
+const ROWS: u16 = 10;
+const ROW_SPACE: u16 = 2 * CubeImage::HEIGHT;
 const MOVEMENT_SPEED: i32 = 15;
 const BACKGROUND_COLOR: u32 = 0xff_ff_ff_ff;
 const QUARTER_WIDTH: u16 = 120;
@@ -70,55 +62,57 @@ impl CubeField {
             ),
         );
 
-        CubeField {
-            cubes: [Cube::new(cube_hit_box, Velocity::default(), CubeImage); TOTAL_CUBES as usize],
-            player: Player::new(player_hit_box, Velocity::default(), PlayerImage),
-            score: 0,
-            zone: Zones::Start(StartZone),
-        }
-    }
+        let mut cubes =
+            [Cube::new(cube_hit_box, Velocity::default(), CubeImage); TOTAL_CUBES as usize];
 
-    pub fn randomize_field(&mut self, rng: &mut SmallRng) {
         for row in 0..ROWS {
-            let y = -((ROW_SPACE * row + 100) as i32);
-            let delta = Position::new(0, y);
+            let y: i32 = lcd::SCREEN_HEIGHT_I32 - PlayerImage::HEIGHT as i32 - (ROW_SPACE * row) as i32;
 
             for cube in 0..CUBES_PER_ROW {
-                let i = (row * CUBES_PER_ROW + cube) as usize;
-                self.cubes[i].hit_box.translate(&delta);
-                self.cubes[i].set_velocity(Velocity::new(0, BASE_CUBE_SPEED));
-            }
+                let x: i32 = match cube {
+                    0 => StartZone::LEFT_COLUMN_X,
+                    1 => StartZone::RIGHT_COLUMN_X,
+                    _ => Self::X_MIN,
+                };
 
-            self.distribute_row(row as u32, rng);
+                let i = (row * CUBES_PER_ROW + cube) as usize;
+                cubes[i].hit_box.translate_to(&Position::new(x, y));
+            }
+        }
+
+        CubeField {
+            cubes,
+            player: Player::new(player_hit_box, Velocity::default(), PlayerImage),
+            score: 0,
+            zone: Zones::Start(StartZone::default()),
         }
     }
 
-    pub fn process_frame(
-        &mut self,
-        dpad: &DPad,
-        dma2d: &mut Dma2d,
-        rng: &mut SmallRng,
-    ) -> bool {
+    pub fn process_frame(&mut self, dpad: &DPad, dma2d: &mut Dma2d) -> bool {
         dma2d.fill_background(BACKGROUND_COLOR, QUARTER_WIDTH, lcd::SCREEN_HEIGHT_U16);
 
         let mut game_over = false;
 
-        let vx = match (dpad.left_pressed(), dpad.right_pressed()) {
+        let vx: i32 = match (dpad.left_pressed(), dpad.right_pressed()) {
             (false, false) => 0,
             (false, true) => -MOVEMENT_SPEED,
             (true, false) => MOVEMENT_SPEED,
             (true, true) => 0,
         };
 
+        let vy: i32 = self.zone.speed();
+
         for cube in self.cubes.iter_mut() {
-            self.zone.reposition_cube(cube, rng, vx);
+            if cube.hit_box.collides_with(&self.player.hit_box) {
+                game_over = true;
+                break;
+            }
+
+            cube.set_velocity(Velocity::new(vx, vy));
+            cube.hit_box.translate(&cube.velocity);
 
             if Self::object_on_screen(&cube.hit_box) {
-                if cube.hit_box.collides_with(&self.player.hit_box) {
-                    game_over = true;
-                    break;
-                }
-
+                // TODO refactor the cropping logic to common or collisionss
                 let cropped_box = BoundingBox::new(
                     Position::new(
                         cube.hit_box.top_left.x.clamp(0, lcd::SCREEN_WIDTH_I32),
@@ -144,6 +138,12 @@ impl CubeField {
                     cropped_box.height() as u16,
                 );
             }
+
+            if cube.hit_box.top_left.y > lcd::SCREEN_HEIGHT_I32 {
+                self.zone.reposition_cube(cube);
+            }
+
+            Self::wrap_cube_if_out_of_bounds(cube);
         }
 
         dma2d.draw_rgb8_image(
@@ -154,25 +154,13 @@ impl CubeField {
             PlayerImage::HEIGHT,
         );
 
-        self.score += self.zone.speed();
-        
+        self.score += vy as u32;
+
         if let Some(new_zone) = self.zone.next_zone(self.score) {
-            self.zone = new_zone;    
+            self.zone = new_zone;
         }
 
         game_over
-    }
-
-    fn distribute_row(&mut self, row_number: u32, rng: &mut SmallRng) {
-        assert!(row_number < ROWS as u32);
-
-        let start_index: usize = (row_number * CUBES_PER_ROW as u32) as usize;
-        let end_index: usize = start_index + CUBES_PER_ROW as usize;
-
-        for i in start_index..end_index {
-            let delta = Position::new(rng.gen_range(Self::X_MIN..Self::X_MAX), 0);
-            self.cubes[i].hit_box.translate(&delta);
-        }
     }
 
     fn object_on_screen(obj_hit_box: &BoundingBox) -> bool {
@@ -184,97 +172,139 @@ impl CubeField {
         screen.collides_with(obj_hit_box)
     }
 
-    fn update_cube_position(cube: &mut Cube) -> &BoundingBox {
-        cube.hit_box.translate(&cube.velocity);
-
+    fn wrap_cube_if_out_of_bounds(cube: &mut Cube) {
         if cube.hit_box.top_left.x > Self::X_MAX {
             cube.hit_box
-                .translate_to(&Position::new(Self::X_MIN, cube.hit_box.top_left.y))
+                .translate_to(&Position::new(Self::X_MIN, cube.hit_box.top_left.y));
         } else if cube.hit_box.top_left.x < Self::X_MIN {
             cube.hit_box.translate_to(&Position::new(
                 Self::X_MAX - CubeImage::WIDTH as i32,
                 cube.hit_box.top_left.y,
-            ))
-        } else {
-            &cube.hit_box
+            ));
         }
     }
 }
 
 enum Zones {
     Start(StartZone),
-    First(FirstZone),
-    End,
+    Random(RandomizedZone),
+    End(EndZone),
 }
 
 impl Zones {
-    fn reposition_cube(&self, cube: &mut Cube, rng: &mut SmallRng, vx: i32) {
+    fn reposition_cube(&mut self, cube: &mut Cube) {
         match self {
-            Zones::Start(z) => { z.reposition_cube(cube, rng, vx) }
-            Zones::First(z) => { z.reposition_cube(cube, rng, vx) }
-            Zones::End => {}
+            Zones::Start(z) => z.reposition_cube(cube),
+            Zones::Random(z) => z.reposition_cube(cube),
+            Zones::End(_) => {}
         }
     }
 
     fn next_zone(&self, score: u32) -> Option<Zones> {
         match self {
-            Zones::Start(z) if score > StartZone::END => { Some(z.next_zone()) }
-            Zones::First(z) if score > FirstZone::END => { Some(z.next_zone()) }
-            Zones::End => { None }
-            _ => { None }
+            Zones::Start(z) if z.passed_zone(score) => Some(z.next_zone()),
+            Zones::Random(z) if z.passed_zone(score) => Some(z.next_zone()),
+            Zones::End(_) => None,
+            _ => None,
         }
     }
 
-    fn speed(&self) -> u32 {
-        (match self {
-            Zones::Start(_) => { StartZone::CUBE_SPEED }
-            Zones::First(_) => { FirstZone::CUBE_SPEED }
-            Zones::End => { 0 }
-        }) as u32
+    fn speed(&self) -> i32 {
+        match self {
+            Zones::Start(_) => StartZone::CUBE_SPEED,
+            Zones::Random(z) => z.cube_speed(),
+            Zones::End(_) => 0,
+        }
     }
 }
 
 trait ZoneBehavior {
-    const CUBE_SPEED: i32;
-    const END: u32;
-
-    fn reposition_cube(&self, cube: &mut Cube, rng: &mut SmallRng, vx: i32) {        
-        cube.set_velocity(Velocity::new(vx, Self::CUBE_SPEED));
-        CubeField::update_cube_position(cube);
-
-        if cube.hit_box.top_left.y > lcd::SCREEN_HEIGHT_I32 {
-            let new_position = Position::new(
-                rng.gen_range(CubeField::X_MIN..CubeField::X_MAX),
-                cube.hit_box.top_left.y - (ROW_SPACE * ROWS) as i32,
-            );
-    
-            cube.hit_box.translate_to(&new_position);
-        }
-    }
+    fn cube_speed(&self) -> i32;
+    fn end(&self) -> u32;
+    fn next_zone(&self) -> Zones;
+    fn reposition_cube(&mut self, cube: &mut Cube);
 
     fn passed_zone(&self, score: u32) -> bool {
-        score >= Self::END
+        score >= self.end()
     }
-
-    fn next_zone(&self) -> Zones;
 }
 
-struct StartZone;
-impl ZoneBehavior for StartZone {
+struct StartZone {
+    left_count: u16,
+    right_count: u16,
+}
+
+impl StartZone {
     const CUBE_SPEED: i32 = 5;
     const END: u32 = 1_500;
+    const LEFT_COLUMN_X: i32 = lcd::SCREEN_WIDTH_I32 / 4 - (CubeImage::WIDTH as i32) / 2;
+    const RIGHT_COLUMN_X: i32 = (lcd::SCREEN_WIDTH_I32 * 3) / 4 - (CubeImage::WIDTH as i32) / 2;
 
-    fn next_zone(&self) -> Zones {
-        Zones::First(FirstZone)
+    fn default() -> Self {
+        StartZone {
+            left_count: ROWS,
+            right_count: ROWS,
+        }
     }
 }
 
-struct FirstZone;
-impl ZoneBehavior for FirstZone {
-    const CUBE_SPEED: i32 = 10;
-    const END: u32 = 11_500;
+impl ZoneBehavior for StartZone {
+    fn reposition_cube(&mut self, cube: &mut Cube) {
+        cube.hit_box.translate(&Position::new(0, -((ROW_SPACE * ROWS) as i32)));
+    }
 
     fn next_zone(&self) -> Zones {
-        Zones::End
+        Zones::Random(RandomizedZone::new(Self::END))
+    }
+
+    fn cube_speed(&self) -> i32 {
+        Self::CUBE_SPEED
+    }
+
+    fn end(&self) -> u32 {
+        Self::END
     }
 }
+
+struct RandomizedZone {
+    end: u32,
+    level: i32,
+}
+
+impl RandomizedZone {
+    const BASE_SPEED: i32 = 7;
+    const SPEED_INCREMENT: i32 = 3;
+    const BASE_ZONE_LENGTH: u32 = 5_000;
+
+    pub fn new(zone_start: u32) -> Self {
+        RandomizedZone {
+            end: zone_start + Self::BASE_ZONE_LENGTH,
+            level: 0,
+        }
+    }
+}
+
+impl ZoneBehavior for RandomizedZone {
+    fn reposition_cube(&mut self, cube: &mut Cube) {
+        let new_position = Position::new(
+            rng::gen_range(CubeField::X_MIN..CubeField::X_MAX),
+            cube.hit_box.top_left.y - (ROW_SPACE * ROWS) as i32,
+        );
+
+        cube.hit_box.translate_to(&new_position);
+    }
+
+    fn next_zone(&self) -> Zones {
+        Zones::End(EndZone)
+    }
+
+    fn cube_speed(&self) -> i32 {
+        Self::BASE_SPEED + (Self::SPEED_INCREMENT * self.level)
+    }
+
+    fn end(&self) -> u32 {
+        self.end
+    }
+}
+
+struct EndZone;
