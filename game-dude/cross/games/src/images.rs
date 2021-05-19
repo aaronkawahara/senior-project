@@ -9,16 +9,16 @@ pub trait SimpleImage {
 }
 
 #[derive(Clone, Copy)]
-pub struct CubeImage;
-impl SimpleImage for CubeImage {
+pub struct SquareImage;
+impl SimpleImage for SquareImage {
     const WIDTH: u16 = 50;
     const HEIGHT: u16 = 50;
     fn data_address(&self) -> u32 {
-        unsafe { core::mem::transmute::<&u8, u32>(&CUBE_IMAGE_DATA[0]) }
+        unsafe { core::mem::transmute::<&u8, u32>(&SQUARE_IMAGE_DATA[0]) }
     }
 }
 
-pub static CUBE_IMAGE_DATA: [u8; 2500] = [
+pub static SQUARE_IMAGE_DATA: [u8; 2500] = [
     0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 
     0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 
     0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 229, 229, 229, 229, 229, 229, 

@@ -1,6 +1,6 @@
 #![no_std]
 
-pub mod cube_field;
+pub mod square_field;
 pub mod input;
 
 mod images;
