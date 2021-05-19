@@ -24,7 +24,7 @@ pub fn play(lcd: &mut Lcd, dpad: &DPad, dma2d: &mut Dma2d, draw_and_wait: fn() -
 }
 
 const TOTAL_CUBES: u16 = ROWS * CUBES_PER_ROW;
-const CUBES_PER_ROW: u16 = 3;
+const CUBES_PER_ROW: u16 = 4;
 const ROWS: u16 = lcd::SCREEN_HEIGHT_U16 / ROW_SPACE + 2; // 1 for rounding up and 1 for smoothness
 const ROW_SPACE: u16 = 2 * CubeImage::HEIGHT;
 const MOVEMENT_SPEED: i32 = 15;
@@ -42,8 +42,8 @@ struct CubeField {
 }
 
 impl CubeField {
-    const X_MIN: i32 = -260;
-    const X_MAX: i32 = 740;
+    const X_MIN: i32 = -lcd::SCREEN_WIDTH_I32;
+    const X_MAX: i32 = lcd::SCREEN_WIDTH_I32 * 2;
 
     pub fn new() -> Self {
         let cube_hit_box = BoundingBox::new(
@@ -65,26 +65,13 @@ impl CubeField {
         let mut cubes =
             [Cube::new(cube_hit_box, Velocity::default(), CubeImage); TOTAL_CUBES as usize];
 
-        for row in 0..ROWS {
-            let y: i32 = lcd::SCREEN_HEIGHT_I32 - PlayerImage::HEIGHT as i32 - (ROW_SPACE * row) as i32;
-
-            for cube in 0..CUBES_PER_ROW {
-                let x: i32 = match cube {
-                    0 => TransitionZone::LEFT_COLUMN_X,
-                    1 => TransitionZone::RIGHT_COLUMN_X,
-                    _ => Self::X_MIN,
-                };
-
-                let i = (row * CUBES_PER_ROW + cube) as usize;
-                cubes[i].hit_box.translate_to(&Position::new(x, y));
-            }
-        }
+        let zone = Zones::Empty(EmptyZone::default().setup(&mut cubes));
 
         CubeField {
             cubes,
             player: Player::new(player_hit_box, Velocity::default(), PlayerImage),
             score: 0,
-            zone: Zones::Transition(TransitionZone::default()),
+            zone,
         }
     }
 
@@ -101,6 +88,14 @@ impl CubeField {
         };
 
         let vy: i32 = self.zone.speed();
+
+        dma2d.draw_rgb8_image(
+            self.player.image.data_address(),
+            self.player.hit_box.top_left.x as u32,
+            self.player.hit_box.top_left.y as u32,
+            PlayerImage::WIDTH,
+            PlayerImage::HEIGHT,
+        );
 
         for cube in self.cubes.iter_mut() {
             if cube.hit_box.collides_with(&self.player.hit_box) {
@@ -146,18 +141,13 @@ impl CubeField {
             Self::wrap_cube_if_out_of_bounds(cube);
         }
 
-        dma2d.draw_rgb8_image(
-            self.player.image.data_address(),
-            self.player.hit_box.top_left.x as u32,
-            self.player.hit_box.top_left.y as u32,
-            PlayerImage::WIDTH,
-            PlayerImage::HEIGHT,
-        );
-
         self.score += vy as u32;
 
-        if let Some(new_zone) = self.zone.next_zone(self.score) {
+        let zone = core::mem::take(&mut self.zone);
+        if let Some(new_zone) = zone.next_zone(self.score, &mut self.cubes) {
             self.zone = new_zone;
+        } else {
+            game_over = true;
         }
 
         game_over
@@ -176,7 +166,7 @@ impl CubeField {
         if cube.hit_box.top_left.x > Self::X_MAX {
             cube.hit_box
                 .translate_to(&Position::new(Self::X_MIN, cube.hit_box.top_left.y));
-        } else if cube.hit_box.top_left.x < Self::X_MIN {
+        } else if cube.hit_box.bottom_right.x < Self::X_MIN {
             cube.hit_box.translate_to(&Position::new(
                 Self::X_MAX - CubeImage::WIDTH as i32,
                 cube.hit_box.top_left.y,
@@ -186,32 +176,42 @@ impl CubeField {
 }
 
 enum Zones {
+    Empty(EmptyZone),
     Transition(TransitionZone),
     Random(RandomizedZone),
     End(EndZone),
 }
 
+impl Default for Zones {
+    fn default() -> Self {
+        Zones::End(EndZone)
+    }
+}
+
 impl Zones {
     fn reposition_cube(&mut self, cube: &mut Cube) {
         match self {
+            Zones::Empty(_) => {}
             Zones::Transition(z) => z.reposition_cube(cube),
             Zones::Random(z) => z.reposition_cube(cube),
             Zones::End(_) => {}
         }
     }
 
-    fn next_zone(&self, score: u32) -> Option<Zones> {
+    fn next_zone(self, score: u32, cubes: &mut [Cube; TOTAL_CUBES as usize]) -> Option<Zones> {
         match self {
-            Zones::Transition(z) if z.passed_zone(score) => Some(z.next_zone()),
-            Zones::Random(z) if z.passed_zone(score) => Some(z.next_zone()),
+            Zones::Empty(z) if z.passed_zone(score) => Some(z.next_zone(cubes)),
+            Zones::Transition(z) if z.passed_zone(score) => Some(z.next_zone(cubes)),
+            Zones::Random(z) if z.passed_zone(score) => Some(z.next_zone(cubes)),
             Zones::End(_) => None,
-            _ => None,
+            _zone => Some(_zone),
         }
     }
 
     fn speed(&self) -> i32 {
         match self {
-            Zones::Transition(_) => TransitionZone::CUBE_SPEED,
+            Zones::Empty(z) => z.cube_speed(),
+            Zones::Transition(z) => z.cube_speed(),
             Zones::Random(z) => z.cube_speed(),
             Zones::End(_) => 0,
         }
@@ -221,66 +221,181 @@ impl Zones {
 trait ZoneBehavior {
     fn cube_speed(&self) -> i32;
     fn end(&self) -> u32;
-    fn next_zone(&self) -> Zones;
+    fn next_zone(self, cubes: &mut [Cube; TOTAL_CUBES as usize]) -> Zones;
     fn reposition_cube(&mut self, cube: &mut Cube);
+    fn setup(self, cubes: &mut [Cube; TOTAL_CUBES as usize]) -> Self;
 
     fn passed_zone(&self, score: u32) -> bool {
         score >= self.end()
     }
 }
 
+struct EmptyZone {
+    end: u32,
+    level_data: LevelData,
+    transition_next: bool,
+}
+
+impl EmptyZone {
+    const ZONE_LENGTH: u32 = 2 * lcd::SCREEN_HEIGHT_U32;
+
+    fn default() -> Self {
+        EmptyZone {
+            end: Self::ZONE_LENGTH,
+            level_data: LevelData::default(),
+            transition_next: true,
+        }
+    }
+    
+    fn new(level_data: LevelData, start: u32, transition_next: bool) -> Self {
+        EmptyZone {
+            end: start + Self::ZONE_LENGTH,
+            level_data,
+            transition_next,
+        }
+    }
+}
+
+impl ZoneBehavior for EmptyZone {
+    fn cube_speed(&self) -> i32 {
+        self.level_data.cube_speed
+    }
+
+    fn end(&self) -> u32 {
+        self.end
+    }
+
+    fn next_zone(self, cubes: &mut [Cube; TOTAL_CUBES as usize]) -> Zones {
+        if self.transition_next {
+            Zones::Transition(TransitionZone::new(self.level_data, self.end).setup(cubes))
+        } else {
+            Zones::Random(
+                RandomizedZone::new(self.level_data, self.end + lcd::SCREEN_HEIGHT_U32).setup(cubes),
+            )
+        }
+        
+    }
+
+    fn reposition_cube(&mut self, _cube: &mut Cube) {}
+
+    fn setup(self, cubes: &mut [Cube; TOTAL_CUBES as usize]) -> Self {
+        for cube in cubes.iter_mut() {
+            cube.hit_box
+                .translate_to(&Position::new(0, lcd::SCREEN_WIDTH_I32));
+        }
+
+        self
+    }
+}
+
 struct TransitionZone {
-    left_count: u16,
-    right_count: u16,
+    curr_cube: u16,
+    end: u32,
+    level_data: LevelData,
+    rows_passed: i32,
 }
 
 impl TransitionZone {
-    const CUBE_SPEED: i32 = 5;
-    const END: u32 = 250;
-    const LEFT_COLUMN_X: i32 = lcd::SCREEN_WIDTH_I32 / 4 - (CubeImage::WIDTH as i32) / 2;
-    const RIGHT_COLUMN_X: i32 = (lcd::SCREEN_WIDTH_I32 * 3) / 4 - (CubeImage::WIDTH as i32) / 2;
+    const BASE_SPEED: i32 = 5;
+    const SPEED_INCREMENT: i32 = 2;
+    const DX: i32 = CubeImage::WIDTH as i32;
+    const LEFT_WALL_START: i32 = -(lcd::SCREEN_WIDTH_I32 / 2) + (CubeImage::WIDTH as i32) / 2;
+    const LEFT_WALL_END: i32 = lcd::SCREEN_WIDTH_I32 / 4 - (CubeImage::WIDTH as i32) / 2;
+    const RIGHT_WALL_START: i32 = (lcd::SCREEN_WIDTH_I32 + lcd::SCREEN_WIDTH_I32 / 2)
+        - (CubeImage::WIDTH as i32) / 2
+        - CubeImage::WIDTH as i32;
+    const RIGHT_WALL_END: i32 = (lcd::SCREEN_WIDTH_I32 * 3) / 4;
+    const CORRAL_ROWS: i32 = (Self::RIGHT_WALL_START - Self::RIGHT_WALL_END) / Self::DX + 1;
+    const RUNWAY_ROWS: i32 = 2 * ROWS as i32;
+    const TRANSITION_ROWS: i32 = Self::CORRAL_ROWS + Self::RUNWAY_ROWS;
+    const TRANSITION_LENGTH: u32 = Self::TRANSITION_ROWS as u32 * ROW_SPACE as u32;
 
     fn default() -> Self {
         TransitionZone {
-            left_count: ROWS,
-            right_count: ROWS,
+            curr_cube: 0,
+            end: Self::TRANSITION_LENGTH,
+            level_data: LevelData::default(),
+            rows_passed: 0,
+        }
+    }
+
+    fn new(mut level_data: LevelData, zone_start: u32) -> Self {
+        level_data.cube_speed = Self::BASE_SPEED + (Self::SPEED_INCREMENT * level_data.level);
+
+        TransitionZone {
+            curr_cube: 0,
+            end: zone_start + Self::TRANSITION_LENGTH,
+            level_data,
+            rows_passed: 0,
         }
     }
 }
 
 impl ZoneBehavior for TransitionZone {
     fn reposition_cube(&mut self, cube: &mut Cube) {
-        cube.hit_box.translate(&Position::new(0, -((ROW_SPACE * ROWS) as i32)));
+        let x: i32 = match self.curr_cube {
+            0 => Self::DX * (Self::CORRAL_ROWS - self.rows_passed).clamp(0, ROWS as i32),
+            1 => -Self::DX * (Self::CORRAL_ROWS - self.rows_passed).clamp(0, ROWS as i32),
+            _ => 0,
+        };
+
+        let y: i32 = -((ROW_SPACE * ROWS) as i32);
+
+        cube.hit_box.translate(&Position::new(x, y));
+
+        self.curr_cube += 1;
+        if self.curr_cube == CUBES_PER_ROW {
+            self.rows_passed += 1;
+            self.curr_cube = 0;
+        }
     }
 
-    fn next_zone(&self) -> Zones {
-        Zones::Random(RandomizedZone::new(Self::END + lcd::SCREEN_HEIGHT_U32))
+    fn next_zone(self, _cubes: &mut [Cube; TOTAL_CUBES as usize]) -> Zones {
+        Zones::Empty(EmptyZone::new(self.level_data, self.end, false))
     }
 
     fn cube_speed(&self) -> i32 {
-        Self::CUBE_SPEED
+        self.level_data.cube_speed
     }
 
     fn end(&self) -> u32 {
-        Self::END
+        self.end
+    }
+
+    fn setup(self, cubes: &mut [Cube; TOTAL_CUBES as usize]) -> Self {
+        for row in 0..(ROWS as i32) {
+            let y: i32 = lcd::SCREEN_HEIGHT_I32 - (CubeImage::HEIGHT as i32 + (ROW_SPACE as i32) * row);
+
+            for cube in 0..CUBES_PER_ROW {
+                let x: i32 = match cube {
+                    0 => Self::LEFT_WALL_START + row * Self::DX,
+                    1 => Self::RIGHT_WALL_START - row * Self::DX,
+                    _ => CubeField::X_MIN,
+                };
+
+                let i = (row as u16 * CUBES_PER_ROW + cube) as usize;
+                cubes[i].hit_box.translate_to(&Position::new(x, y));
+            }
+        }
+
+        self
     }
 }
 
 struct RandomizedZone {
     end: u32,
-    level: i32,
+    level_data: LevelData,
 }
 
 impl RandomizedZone {
-    const BASE_SPEED: i32 = 7;
-    const SPEED_INCREMENT: i32 = 2;
-    const BASE_ZONE_LENGTH: u32 = 7_000;
-    const ZONE_INCREMENT: u32 = Self::SPEED_INCREMENT as u32 * 1000;
+    const BASE_ZONE_LENGTH: u32 = 1_000;
+    const ZONE_INCREMENT: u32 = TransitionZone::SPEED_INCREMENT as u32 * 1000;
 
-    pub fn new(zone_start: u32) -> Self {
+    pub fn new(level_data: LevelData, zone_start: u32) -> Self {
         RandomizedZone {
-            end: zone_start + Self::BASE_ZONE_LENGTH,
-            level: 0,
+            end: zone_start
+                + (Self::BASE_ZONE_LENGTH + Self::ZONE_INCREMENT * level_data.level as u32),
+            level_data,
         }
     }
 }
@@ -295,21 +410,59 @@ impl ZoneBehavior for RandomizedZone {
         cube.hit_box.translate_to(&new_position);
     }
 
-    fn next_zone(&self) -> Zones {
-        if self.end > u32::MAX - Self::BASE_ZONE_LENGTH {
-            Zones::End(EndZone)
+    fn next_zone(mut self, _cubes: &mut [Cube; TOTAL_CUBES as usize]) -> Zones {
+        self.level_data.level += 1;
+
+        let min_space_needed = EmptyZone::ZONE_LENGTH
+            + TransitionZone::TRANSITION_LENGTH
+            + Self::BASE_ZONE_LENGTH
+            + Self::ZONE_INCREMENT * self.level_data.level as u32;
+
+        if self.end < u32::MAX - min_space_needed {
+            Zones::Empty(EmptyZone::new(self.level_data, self.end, true))
         } else {
             Zones::End(EndZone)
         }
     }
 
     fn cube_speed(&self) -> i32 {
-        Self::BASE_SPEED + (Self::SPEED_INCREMENT * self.level)
+        self.level_data.cube_speed
     }
 
     fn end(&self) -> u32 {
         self.end
     }
+
+    fn setup(self, cubes: &mut [Cube; TOTAL_CUBES as usize]) -> Self {
+        for row in 0..(ROWS as i32) {
+            let y: i32 = -(CubeImage::HEIGHT as i32 + (ROW_SPACE as i32) * row);
+
+            for cube in 0..CUBES_PER_ROW {
+                let x: i32 = rng::gen_range(CubeField::X_MIN..CubeField::X_MAX);
+
+                let i = (row as u16 * CUBES_PER_ROW + cube) as usize;
+                cubes[i].hit_box.translate_to(&Position::new(x, y));
+            }
+        }
+
+        self
+    }
 }
 
 struct EndZone;
+
+struct LevelData {
+    cube_speed: i32,
+    level: i32,
+}
+
+impl LevelData {
+    const START_SPEED: i32 = 5;
+
+    pub fn default() -> Self {
+        LevelData {
+            cube_speed: Self::START_SPEED,
+            level: 0,
+        }
+    }
+}
