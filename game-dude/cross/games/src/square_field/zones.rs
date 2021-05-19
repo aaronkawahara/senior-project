@@ -134,7 +134,7 @@ impl TransitionZone {
     const SPEED_INCREMENT: i32 = 2;
     const DX: i32 = SquareImage::WIDTH as i32;
     const LEFT_WALL_START: i32 = -(lcd::SCREEN_WIDTH_I32 / 2) + (SquareImage::WIDTH as i32) / 2;
-    const LEFT_WALL_END: i32 = lcd::SCREEN_WIDTH_I32 / 4 - (SquareImage::WIDTH as i32) / 2;
+    // const LEFT_WALL_END: i32 = lcd::SCREEN_WIDTH_I32 / 4 - (SquareImage::WIDTH as i32) / 2;
     const RIGHT_WALL_START: i32 = (lcd::SCREEN_WIDTH_I32 + lcd::SCREEN_WIDTH_I32 / 2)
         - (SquareImage::WIDTH as i32) / 2
         - SquareImage::WIDTH as i32;

@@ -12,7 +12,7 @@ use rt::entry;
 #[entry]
 fn main() -> ! {
     let mut board = Board::new();
-    let mut lcd = Lcd::new();
+    let lcd = Lcd::new();
     let _clocks = board.init_system_clocks();
 
     board.ltdc().pwr_pins.display_pwr_on();
@@ -28,7 +28,7 @@ fn main() -> ! {
     loop {
         state = match state {
             States::PlayCubeField => {
-                let score: u32 = square_field::play(&mut lcd, &mut dpad, &mut dma2d, draw_and_wait);
+                let score: u32 = square_field::play(&mut dpad, &mut dma2d, draw_and_wait);
                 States::GameOver { score, game: Games::CubeField }
             }
             States::GameOver { score, game} => {

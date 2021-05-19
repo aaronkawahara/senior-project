@@ -5,16 +5,15 @@ use crate::images::{SquareImage, PlayerImage};
 use crate::input::{DPad, DirectionalInput};
 use crate::rng;
 
-use super::zones::{EmptyZone, ZoneBehavior, Zones};
+use super::zones::Zones;
 
-use defmt;/*  */
-use lcd::{self, Lcd};
+use lcd;
 use stm32l4p5_hal::dma2d::Dma2d;
 
 const BACKGROUND_COLOR: u32 = 0xff_ff_ff_ff;
 const QUARTER_WIDTH: u16 = 120;
 
-pub fn play(lcd: &mut Lcd, dpad: &DPad, dma2d: &mut Dma2d, draw_and_wait: fn() -> ()) -> u32 {
+pub fn play(dpad: &DPad, dma2d: &mut Dma2d, draw_and_wait: fn() -> ()) -> u32 {
     let mut square_field = SquareField::new();
     let mut game_over = false;
     rng::init_rng();
