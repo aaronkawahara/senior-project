@@ -1,7 +1,7 @@
 use crate::collisions::{BoundingBox, Collideable};
 use crate::common::{MovingObject, Position, Velocity};
 use crate::images::SimpleImage;
-use crate::images::{SquareImage, PlayerImage};
+use crate::images::{PlayerImage, SquareImage};
 use crate::input::{DPad, DirectionalInput};
 use crate::rng;
 
@@ -71,10 +71,10 @@ impl SquareField {
             ),
         );
 
-        let mut squares =
-            [Square::new(square_hit_box, Velocity::default(), SquareImage); Self::TOTAL_SQUARES as usize];
+        let mut squares: Field = [Square::new(square_hit_box, Velocity::default(), SquareImage);
+            Self::TOTAL_SQUARES as usize];
 
-        let zone = Zones::init_start_zone(&mut squares);
+        let zone: Zones = Zones::init_start_zone(&mut squares);
 
         SquareField {
             squares,
@@ -123,8 +123,16 @@ impl SquareField {
                         square.hit_box.top_left.y.clamp(0, lcd::SCREEN_HEIGHT_I32),
                     ),
                     Position::new(
-                        square.hit_box.bottom_right.x.clamp(0, lcd::SCREEN_WIDTH_I32),
-                        square.hit_box.bottom_right.y.clamp(0, lcd::SCREEN_HEIGHT_I32),
+                        square
+                            .hit_box
+                            .bottom_right
+                            .x
+                            .clamp(0, lcd::SCREEN_WIDTH_I32),
+                        square
+                            .hit_box
+                            .bottom_right
+                            .y
+                            .clamp(0, lcd::SCREEN_HEIGHT_I32),
                     ),
                 );
 
@@ -173,7 +181,8 @@ impl SquareField {
 
     fn wrap_square_if_out_of_bounds(square: &mut Square) {
         if square.hit_box.top_left.x > Self::X_MAX {
-            square.hit_box
+            square
+                .hit_box
                 .translate_to(&Position::new(Self::X_MIN, square.hit_box.top_left.y));
         } else if square.hit_box.bottom_right.x < Self::X_MIN {
             square.hit_box.translate_to(&Position::new(

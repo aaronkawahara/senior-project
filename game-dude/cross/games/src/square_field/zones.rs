@@ -80,7 +80,7 @@ impl EmptyZone {
             transition_next: true,
         }
     }
-    
+
     fn new(level_data: LevelData, start: u32, transition_next: bool) -> Self {
         EmptyZone {
             end: start + Self::ZONE_LENGTH,
@@ -104,17 +104,18 @@ impl ZoneBehavior for EmptyZone {
             Zones::Transition(TransitionZone::new(self.level_data, self.end).setup(squares))
         } else {
             Zones::Random(
-                RandomizedZone::new(self.level_data, self.end + lcd::SCREEN_HEIGHT_U32).setup(squares),
+                RandomizedZone::new(self.level_data, self.end + lcd::SCREEN_HEIGHT_U32)
+                    .setup(squares),
             )
         }
-        
     }
 
     fn reposition_square(&mut self, _square: &mut Square) {}
 
     fn setup(self, squares: &mut Field) -> Self {
         for square in squares.iter_mut() {
-            square.hit_box
+            square
+                .hit_box
                 .translate_to(&Position::new(0, lcd::SCREEN_WIDTH_I32));
         }
 
@@ -140,7 +141,7 @@ impl TransitionZone {
         - SquareImage::WIDTH as i32;
     const RIGHT_WALL_END: i32 = (lcd::SCREEN_WIDTH_I32 * 3) / 4;
     const CORRAL_ROWS: i32 = (Self::RIGHT_WALL_START - Self::RIGHT_WALL_END) / Self::DX + 1;
-    const RUNWAY_ROWS: i32 = 2 * SquareField::ROWS as i32;
+    const RUNWAY_ROWS: i32 = SquareField::ROWS as i32;
     const TRANSITION_ROWS: i32 = Self::CORRAL_ROWS + Self::RUNWAY_ROWS;
     const TRANSITION_LENGTH: u32 = Self::TRANSITION_ROWS as u32 * SquareField::ROW_SPACE as u32;
 
@@ -159,8 +160,13 @@ impl TransitionZone {
 impl ZoneBehavior for TransitionZone {
     fn reposition_square(&mut self, square: &mut Square) {
         let x: i32 = match self.curr_square {
-            0 => Self::DX * (Self::CORRAL_ROWS - self.rows_passed).clamp(0, SquareField::ROWS as i32),
-            1 => -Self::DX * (Self::CORRAL_ROWS - self.rows_passed).clamp(0, SquareField::ROWS as i32),
+            0 => {
+                Self::DX * (Self::CORRAL_ROWS - self.rows_passed).clamp(0, SquareField::ROWS as i32)
+            }
+            1 => {
+                -Self::DX
+                    * (Self::CORRAL_ROWS - self.rows_passed).clamp(0, SquareField::ROWS as i32)
+            }
             _ => 0,
         };
 
@@ -189,7 +195,8 @@ impl ZoneBehavior for TransitionZone {
 
     fn setup(self, squares: &mut Field) -> Self {
         for row in 0..(SquareField::ROWS as i32) {
-            let y: i32 = lcd::SCREEN_HEIGHT_I32 - (SquareImage::HEIGHT as i32 + (SquareField::ROW_SPACE as i32) * row);
+            let y: i32 = lcd::SCREEN_HEIGHT_I32
+                - (SquareImage::HEIGHT as i32 + (SquareField::ROW_SPACE as i32) * row);
 
             for square in 0..SquareField::SQUARES_PER_ROW {
                 let x: i32 = match square {
