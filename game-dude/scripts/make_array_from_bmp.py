@@ -60,7 +60,16 @@ def write_array_to_file(fout, image_name, width, height, pixel_data):
     chars_per_byte = 5
     bytes_per_line = int((line_length - len(indent)) / chars_per_byte)
     total_lines = math.ceil(array_len / bytes_per_line)
-    image_name = image_name.split("\\")[-1][0: -4].capitalize()
+    image_name = image_name.split("\\")[-1][0: -4]
+    image_name = image_name.split("_")
+    data_name = []
+
+    for i in range(len(image_name)):
+        data_name.append(image_name[i].upper())
+        image_name[i] = image_name[i].capitalize()
+
+    image_name = "".join(image_name)
+    data_name = "_".join(data_name)
 
     fout.write("#[derive(Clone, Copy)]\n");
     fout.write("pub struct {}Image;\n".format(image_name));
@@ -68,11 +77,11 @@ def write_array_to_file(fout, image_name, width, height, pixel_data):
     fout.write("    const WIDTH: u16 = {:d};\n".format(width));
     fout.write("    const HEIGHT: u16 = {:d};\n".format(height));
     fout.write("    fn data_address(&self) -> u32 {\n");
-    fout.write("        unsafe {{ core::mem::transmute::<&u8, u32>(&{}_IMAGE_DATA[0]) }}\n".format(image_name.upper()));
+    fout.write("        unsafe {{ core::mem::transmute::<&u8, u32>(&{}_IMAGE_DATA[0]) }}\n".format(data_name));
     fout.write("    }\n");
     fout.write("}\n");
     fout.write("\n");
-    fout.write("pub static {}_IMAGE_DATA: [u8; {:d}] = [\n".format(image_name.upper(), array_len))
+    fout.write("pub static {}_IMAGE_DATA: [u8; {:d}] = [\n".format(data_name, array_len))
 
     for curr_line in range(total_lines):
         fout.write(indent)
