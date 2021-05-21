@@ -2,6 +2,7 @@ use crate::images::{self, SimpleImage};
 use crate::Games;
 use crate::States;
 
+use super::play_again::{draw_play_again_selection, PlayAgainSelected};
 use super::score::Score;
 
 use board::input::Inputs;
@@ -28,28 +29,23 @@ pub(crate) fn handle_game_over(
     const CENTER_Y: u32 = 182;
     score_digits.display_score(dma2d, lcd::SCREEN_WIDTH_U32 / 2, CENTER_Y);
 
-    const YES_X: u32 = 257;
-    const NO_X: u32 = 407;
-    const YES_NO_Y: u32 = 226;
-
-    dma2d.draw_rgb8_image(
-        images::Yes_selectedImage.data_address(),
-        YES_X,
-        YES_NO_Y,
-        images::Yes_selectedImage::WIDTH,
-        images::Yes_selectedImage::HEIGHT,
-    );
-    dma2d.draw_rgb8_image(
-        images::No_not_selectedImage.data_address(),
-        NO_X,
-        YES_NO_Y,
-        images::No_not_selectedImage::WIDTH,
-        images::No_not_selectedImage::HEIGHT,
-    );
+    let mut selection: PlayAgainSelected = PlayAgainSelected::Yes;
+    draw_play_again_selection(dma2d, &selection);
 
     while !input.down_debounced() {
+        if input.right_debounced() {
+            selection = PlayAgainSelected::No;
+            draw_play_again_selection(dma2d, &selection);
+        } else if input.left_debounced() {
+            selection = PlayAgainSelected::Yes;
+            draw_play_again_selection(dma2d, &selection);
+        }
+
         draw_and_wait();
     }
 
-    States::Play(game)
+    match selection {
+        PlayAgainSelected::Yes => States::Play(game),
+        PlayAgainSelected::No => States::Play(game),
+    }
 }
