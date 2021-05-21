@@ -1,33 +1,31 @@
 #![no_std]
 
-pub mod input;
-pub mod square_field;
-pub mod ui;
-
 mod collisions;
 mod common;
 mod images;
 mod rng;
+mod square_field;
+mod ui;
 
 use crate::ui::game_over;
 
-use input::DPad;
+use board::input::Inputs;
 use stm32l4p5_hal::dma2d::Dma2d;
 
-pub fn start_game_machine(mut dpad: DPad, mut dma2d: Dma2d, draw_and_wait: fn() -> ()) -> ! {
+pub fn start_game_machine(mut input: Inputs, mut dma2d: Dma2d, draw_and_wait: fn() -> ()) -> ! {
     let mut state: States = States::Play(Games::CubeField);
 
     loop {
         state = match state {
             States::Play(Games::CubeField) => {
-                let score: u32 = square_field::play(&mut dpad, &mut dma2d, draw_and_wait);
+                let score: u32 = square_field::play(&mut input, &mut dma2d, draw_and_wait);
                 States::GameOver {
                     game: Games::CubeField,
                     score,
                 }
             }
             States::GameOver { game, score } => {
-                game_over::handle_game_over(&mut dpad, &mut dma2d, draw_and_wait, game, score)
+                game_over::handle_game_over(&mut input, &mut dma2d, draw_and_wait, game, score)
             }
             States::MainMenu => States::MainMenu,
         };

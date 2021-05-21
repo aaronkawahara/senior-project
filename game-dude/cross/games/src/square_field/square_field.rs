@@ -2,24 +2,24 @@ use crate::collisions::{BoundingBox, Collideable};
 use crate::common::{MovingObject, Position, Velocity};
 use crate::images::SimpleImage;
 use crate::images::{PlayerImage, SquareImage};
-use crate::input::{DPad, DirectionalInput};
 use crate::rng;
 
 use super::zones::Zones;
 
+use board::input::Inputs;
 use lcd;
 use stm32l4p5_hal::dma2d::Dma2d;
 
 const BACKGROUND_COLOR: u32 = 0xff_ff_ff_ff;
 const QUARTER_WIDTH: u16 = 120;
 
-pub fn play(dpad: &DPad, dma2d: &mut Dma2d, draw_and_wait: fn() -> ()) -> u32 {
+pub fn play(input: &mut Inputs, dma2d: &mut Dma2d, draw_and_wait: fn() -> ()) -> u32 {
     let mut square_field = SquareField::new();
     let mut game_over = false;
     rng::init_rng();
 
     while !game_over {
-        game_over = square_field.process_frame(dpad, dma2d);
+        game_over = square_field.process_frame(input, dma2d);
         draw_and_wait();
     }
 
@@ -84,12 +84,12 @@ impl SquareField {
         }
     }
 
-    pub fn process_frame(&mut self, dpad: &DPad, dma2d: &mut Dma2d) -> bool {
+    pub fn process_frame(&mut self, input: &mut Inputs, dma2d: &mut Dma2d) -> bool {
         dma2d.fill_background(BACKGROUND_COLOR, QUARTER_WIDTH, lcd::SCREEN_HEIGHT_U16);
 
         let mut game_over = false;
 
-        let vx: i32 = match (dpad.left_pressed(), dpad.right_pressed()) {
+        let vx: i32 = match (input.left_pressed(), input.right_pressed()) {
             (false, false) => 0,
             (false, true) => -Player::MOVEMENT_SPEED,
             (true, false) => Player::MOVEMENT_SPEED,

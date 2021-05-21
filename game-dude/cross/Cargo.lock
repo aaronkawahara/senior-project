@@ -83,7 +83,9 @@ checksum = "c147d86912d04bef727828fda769a76ca81629a46d8ba311a8d58a26aa91473d"
 name = "board"
 version = "0.1.0"
 dependencies = [
+ "debounced-pin",
  "defmt",
+ "embedded-hal",
  "lcd",
  "stm32l4p5-hal",
 ]
@@ -159,6 +161,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "debounced-pin"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79ce156e529b417b6ebd48b37feb99ff95b76c7430489200d91f57f0ec3bfb6e"
+dependencies = [
+ "embedded-hal",
 ]
 
 [[package]]
@@ -245,6 +256,7 @@ dependencies = [
 name = "games"
 version = "0.1.0"
 dependencies = [
+ "board",
  "defmt",
  "embedded-graphics",
  "embedded-hal",
