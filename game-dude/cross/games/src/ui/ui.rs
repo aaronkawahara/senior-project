@@ -3,8 +3,8 @@ pub use super::game_over;
 pub(super) mod numbers {
     use crate::images::{self, SimpleImage};
     
-    pub const NumberWidth: u32 = images::ZeroImage::WIDTH as u32;
-    pub const NumberHeight: u32 = images::ZeroImage::HEIGHT as u32;
+    pub const NUMBER_WIDTH: u32 = images::ZeroImage::WIDTH as u32;
+    pub const NUMBER_HEIGHT: u32 = images::ZeroImage::HEIGHT as u32;
 
     pub fn get_digit_image_address(digit: u32) -> u32 {
         match digit {
