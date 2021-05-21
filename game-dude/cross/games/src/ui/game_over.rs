@@ -17,7 +17,7 @@ pub(crate) fn handle_game_over(
     score: u32,
 ) -> States {
     dma2d.draw_rgb8_image(
-        images::Game_overImage.data_address(),
+        images::GameOverImage.data_address(),
         0,
         0,
         lcd::SCREEN_WIDTH_U16,
@@ -46,6 +46,6 @@ pub(crate) fn handle_game_over(
 
     match selection {
         PlayAgainSelected::Yes => States::Play(game),
-        PlayAgainSelected::No => States::Play(game),
+        PlayAgainSelected::No => States::PlayMenu,
     }
 }

@@ -1,8 +1,6 @@
-pub use super::game_over;
-
 pub(super) mod numbers {
     use crate::images::{self, SimpleImage};
-    
+
     pub const NUMBER_WIDTH: u32 = images::ZeroImage::WIDTH as u32;
     pub const NUMBER_HEIGHT: u32 = images::ZeroImage::HEIGHT as u32;
 
