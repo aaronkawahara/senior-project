@@ -132,14 +132,12 @@ impl Board {
         self.ltdc.gcr.ltdcen(true).update_reg();
     }
 
-    pub fn init_dma2d(&mut self, first_buffer_element: &u8) -> Dma2d {
+    pub fn init_dma2d(&mut self, first_buffer_element: &u8) {
         self.dma2d.as_mut().unwrap().init(
             pac::dma2d::cr::MODE_A::REGISTERTOMEMORY,
             lcd::SCREEN_WIDTH_U16,
             unsafe { core::mem::transmute::<&u8, u32>(first_buffer_element) },
         );
-
-        self.dma2d.take().unwrap()
     }
 
     pub fn ltdc(&mut self) -> &mut Ltdc {
@@ -148,6 +146,10 @@ impl Board {
 
     pub fn rcc(&mut self) -> &mut Rcc {
         &mut self.rcc
+    }
+
+    pub fn take_dma2d(&mut self) -> Dma2d {
+        self.dma2d.take().unwrap()
     }
 
     pub fn take_inputs(&mut self) -> Inputs {

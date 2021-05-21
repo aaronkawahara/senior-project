@@ -19,7 +19,8 @@ fn main() -> ! {
     board.init_ltdc(lcd.first_element());
     let draw_and_wait = board.ltdc().draw_and_wait();
 
-    let dma2d = board.init_dma2d(lcd.first_element());
+    board.init_dma2d(lcd.first_element());
+    let dma2d = board.take_dma2d();
 
     let input = board.take_inputs();
 
