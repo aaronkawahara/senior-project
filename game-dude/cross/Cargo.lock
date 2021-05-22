@@ -256,6 +256,7 @@ dependencies = [
 name = "games"
 version = "0.1.0"
 dependencies = [
+ "asm-delay",
  "board",
  "defmt",
  "embedded-graphics",

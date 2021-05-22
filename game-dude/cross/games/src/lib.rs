@@ -6,6 +6,7 @@ mod common;
 mod images;
 mod rng;
 mod square_field;
+mod only_one_level;
 mod ui;
 
 use crate::ui::{game_over, play_menu};
@@ -30,6 +31,13 @@ pub fn start_game_machine(mut input: Inputs, mut dma2d: Dma2d, draw_and_wait: fn
                     score,
                 }
             }
+            States::Play(Games::OnlyOneLevel) => {
+                let score: u32 = only_one_level::play(&mut input, &mut dma2d, draw_and_wait);
+                States::GameOver {
+                    game: Games::OnlyOneLevel,
+                    score,
+                }
+            }
             States::GameOver { game, score } => {
                 game_over::handle_game_over(&mut input, &mut dma2d, draw_and_wait, game, score)
             }
@@ -45,4 +53,5 @@ pub(crate) enum States {
 #[derive(Clone, Copy)]
 pub(crate) enum Games {
     SquareField,
+    OnlyOneLevel,
 }
