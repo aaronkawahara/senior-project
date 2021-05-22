@@ -1,4 +1,4 @@
-use debounced_pin::{prelude::*, ActiveHigh, ActiveLow};
+use debounced_pin::{prelude::*, ActiveLow};
 use embedded_hal::digital::v2::InputPin;
 use stm32l4p5_hal::gpio::{self, Input, PullUp};
 
@@ -46,23 +46,19 @@ impl Inputs {
     }
 
     pub fn up_debounced(&mut self) -> bool {
-        while self.up.update().ok() == Some(DebounceState::Debouncing) {}
-        self.up.is_active()
+        self.up.is_debounced()
     }
 
     pub fn down_debounced(&mut self) -> bool {
-        while self.down.update().ok() == Some(DebounceState::Debouncing) {}
-        self.down.is_active()
+        self.down.is_debounced()
     }
 
     pub fn left_debounced(&mut self) -> bool {
-        while self.left.update().ok() == Some(DebounceState::Debouncing) {}
-        self.left.is_active()
+        self.left.is_debounced()
     }
 
     pub fn right_debounced(&mut self) -> bool {
-        while self.right.update().ok() == Some(DebounceState::Debouncing) {}
-        self.right.is_active()
+        self.right.is_debounced()
     }
 }
 
@@ -74,6 +70,21 @@ impl<T: InputPin> ButtonPressed for DebouncedInputPin<T, ActiveLow> {
     fn is_pressed(&mut self) -> bool {
         if let Some(state) = self.update().ok() {
             state == DebounceState::Debouncing || state == DebounceState::Active
+        } else {
+            false
+        }
+    }
+}
+
+pub trait ButtonDebounced {
+    fn is_debounced(&mut self) -> bool;
+}
+
+impl<T: InputPin> ButtonDebounced for DebouncedInputPin<T, ActiveLow> {
+    fn is_debounced(&mut self) -> bool {
+        if self.update().ok() == Some(DebounceState::Debouncing) {
+            while self.update().ok() == Some(DebounceState::Debouncing) {}
+            self.is_active()
         } else {
             false
         }
