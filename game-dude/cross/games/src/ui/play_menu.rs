@@ -2,7 +2,6 @@ use crate::images;
 use crate::images::SimpleImage;
 use crate::Games;
 
-use defmt;
 use board::input::Inputs;
 use lcd;
 use stm32l4p5_hal::dma2d::Dma2d;
