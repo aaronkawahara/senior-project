@@ -1,13 +1,14 @@
 use crate::collisions::{BoundingBox, Collideable};
 use crate::common::{MovingObject, Position, Velocity};
-use crate::images::{self, OnlyLevelJustWallsImage, OnlyOneLevelPlayerImage, SimpleImage};
+use crate::images::{OnlyLevelJustWallsImage, OnlyOneLevelPlayerImage, SimpleImage};
 use crate::rng;
 
-use super::levels::{self, JumpData};
+use super::levels::{JumpData};
 
 use board::input::Inputs;
 use lcd;
 use stm32l4p5_hal::dma2d::Dma2d;
+use defmt;
 
 pub(crate) fn play(input: &mut Inputs, dma2d: &mut Dma2d, draw_and_wait: fn() -> ()) -> u32 {
     let mut level: Levels = 0;
@@ -81,56 +82,41 @@ impl OnlyLevel {
         };
 
         let vy: i32 = if self.player_touching_ground && input.up_pressed() {
+            self.player_touching_ground = false;
             self.jump_data.jump()
         } else if !self.player_touching_ground {
             self.jump_data.fall(&self.player.velocity.y)
         } else {
-            self.jump_data.land()
+            defmt::info!("Touching ground");
+            0
         };
 
         let old_hit_box: BoundingBox = self.player.hit_box.clone();
         self.player.set_velocity(Velocity::new(vx, vy));
         self.player.hit_box.translate(&self.player.velocity);
         self.player_touching_ground = false;
-
-        if self.player.hit_box.bottom_right.y >= lcd::SCREEN_HEIGHT_I32 {
-            self.player.hit_box.translate(&Position::new(0, lcd::SCREEN_HEIGHT_I32 - self.player.hit_box.bottom_right.y));
-            self.player_touching_ground = true;
-        }
-
+        defmt::info!("{}", self.player.velocity);
         for wall in WALL_HIT_BOXES.iter() {
-            // if self.player.hit_box.collides_with(wall) {
-            //     if self.player.hit_box.bottom_right.y > wall.top_left.y {
-            //         self.player.hit_box.translate(&Position::new(
-            //             0,
-            //             self.player.hit_box.bottom_right.y - wall.top_left.y,
-            //         ));
-            //         self.player_touching_ground = true;
-            //     } else if self.player.hit_box.top_left.y < wall.bottom_right.y {
-            //         self.player.hit_box.translate(&Position::new(
-            //             0,
-            //             self.player.hit_box.top_left.y - wall.bottom_right.y,
-            //         ));
-            //     }
+            if let Some(collision_location) = self
+                .player
+                .hit_box
+                .collides_with_interpolate(&old_hit_box, wall)
+            {
+                self.player.push_out_of(collision_location, wall);
+            }
 
-            //     if self.player.hit_box.bottom_right.x > wall.top_left.x {
-            //         self.player.hit_box.translate(&Position::new(
-            //             self.player.hit_box.bottom_right.x - wall.top_left.x,
-            //             0,
-            //         ));
-            //     } else if self.player.hit_box.top_left.x < wall.bottom_right.x {
-            //         self.player.hit_box.translate(&Position::new(
-            //             self.player.hit_box.top_left.x - wall.bottom_right.x,
-            //             0,
-            //         ));
-            //     }
-            // }
+            if self.player.hit_box.bottom_right.y == wall.top_left.y &&
+                self.player.hit_box.top_left.x < wall.bottom_right.x &&
+                self.player.hit_box.bottom_right.x > wall.top_left.x
+            {
+                self.player_touching_ground = true;
+            }
         }
 
         dma2d.draw_rgb8_image(
             OnlyOneLevelPlayerImage.data_address(),
-            self.player.hit_box.top_left.x as u32,
-            self.player.hit_box.top_left.y as u32,
+            core::cmp::max(0, self.player.hit_box.top_left.x) as u32,
+            core::cmp::max(0, self.player.hit_box.top_left.y) as u32,
             OnlyOneLevelPlayerImage::WIDTH,
             OnlyOneLevelPlayerImage::HEIGHT,
         );

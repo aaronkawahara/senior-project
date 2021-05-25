@@ -1,5 +1,3 @@
-use core::f32;
-
 use crate::common::{MovingObject, Position, Velocity};
 
 use board::input::Inputs;
@@ -10,14 +8,14 @@ pub(super) trait Level {
 
 pub(super) struct JumpData {
     frames_in_air: i32,
-    gravity: f32,
+    gravity: i32,
 }
 
 impl JumpData {
     // -vi = 1/2 * a * dt
-    const JUMP_VELOCITY: f32 = -1.0;
-    const GRAVITY: f32 = 0.04;
-    const DT: f32 = 50.0;
+    const JUMP_VELOCITY: i32 = -1;
+    const GRAVITY: i32 = 1;
+    const JUMP_FRAMES: i32 = 100;
 
     pub fn new() -> Self {
         JumpData {
@@ -28,17 +26,16 @@ impl JumpData {
 
     pub fn fall(&mut self, old_vy: &i32) -> i32 {
         self.frames_in_air += 1;
-        old_vy + (self.gravity / Self::DT).round() * self.frames_in_air
+        old_vy + (self.gravity * self.frames_in_air) / Self::JUMP_FRAMES
     }
 
     pub fn jump(&mut self) -> i32 {
         self.frames_in_air = 0;
-        Self::JUMP_VELOCITY as i32
+        Self::JUMP_VELOCITY
     }
 
-    pub fn land(&mut self) -> i32 {
+    pub fn landed(&mut self) {
         self.frames_in_air = 0;
-        self.gravity
     }
 }
 

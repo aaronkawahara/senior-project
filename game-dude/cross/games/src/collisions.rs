@@ -1,10 +1,15 @@
-use crate::common::Position;
+use defmt::Format;
+
+use crate::common::{Position};
 
 pub trait Collideable<OTHER> {
     fn collides_with(&self, other: &OTHER) -> bool;
+    fn collides_with_interpolate(&self, old_hit_box: &Self, other: &OTHER) -> Option<Self>
+    where
+        Self: Sized;
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Format)]
 pub struct BoundingBox {
     pub top_left: Position,
     pub bottom_right: Position,
@@ -53,5 +58,39 @@ impl Collideable<BoundingBox> for BoundingBox {
             && self.top_left.y < other.bottom_right.y
             && self.bottom_right.x > other.top_left.x
             && self.bottom_right.y > other.top_left.y
+    }
+
+    fn collides_with_interpolate(
+        &self,
+        old_hit_box: &Self,
+        other: &BoundingBox,
+    ) -> Option<BoundingBox> {
+        let mut collision_location: Option<BoundingBox> = None;
+        let dx: i32 = self.top_left.x - old_hit_box.top_left.x;
+        let dy: i32 = self.top_left.y - old_hit_box.top_left.y;
+        let steps: i32 = core::cmp::max(dx.abs(), dy.abs());
+
+        for step in 0..steps {
+            let x_step: i32 = (step * dx) / steps;
+            let y_step: i32 = (step * dy) / steps;
+
+            let interpolated_hit_box = BoundingBox::new(
+                Position::new(
+                    old_hit_box.top_left.x + x_step,
+                    old_hit_box.top_left.y + y_step,
+                ),
+                Position::new(
+                    old_hit_box.bottom_right.x + x_step,
+                    old_hit_box.bottom_right.y + y_step,
+                ),
+            );
+
+            if interpolated_hit_box.collides_with(other) {
+                collision_location = Some(interpolated_hit_box);
+                break;
+            }
+        }
+
+        collision_location
     }
 }
