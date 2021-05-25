@@ -1,6 +1,6 @@
 use crate::collisions::{BoundingBox, Collideable};
 use crate::common::{MovingObject, Position, Velocity};
-use crate::images::{OnlyLevelJustWallsImage, OnlyOneLevelPlayerImage, SimpleImage};
+use crate::images::{OnlyLevelJustWallsImage, OnlyOneLevelPlayerImage, OnlyOneLevelPlayerBackgroundImage, SimpleImage};
 use crate::rng;
 
 use super::levels::{JumpData};
@@ -87,15 +87,22 @@ impl OnlyLevel {
         } else if !self.player_touching_ground {
             self.jump_data.fall(&self.player.velocity.y)
         } else {
-            defmt::info!("Touching ground");
             0
         };
+
+        dma2d.draw_rgb8_image(
+            OnlyOneLevelPlayerBackgroundImage.data_address(),
+            core::cmp::max(0, self.player.hit_box.top_left.x) as u32,
+            core::cmp::max(0, self.player.hit_box.top_left.y) as u32,
+            OnlyOneLevelPlayerBackgroundImage::WIDTH,
+            OnlyOneLevelPlayerBackgroundImage::HEIGHT,
+        );
 
         let old_hit_box: BoundingBox = self.player.hit_box.clone();
         self.player.set_velocity(Velocity::new(vx, vy));
         self.player.hit_box.translate(&self.player.velocity);
         self.player_touching_ground = false;
-        defmt::info!("{}", self.player.velocity);
+
         for wall in WALL_HIT_BOXES.iter() {
             if let Some(collision_location) = self
                 .player

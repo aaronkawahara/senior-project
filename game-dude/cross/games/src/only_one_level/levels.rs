@@ -13,9 +13,9 @@ pub(super) struct JumpData {
 
 impl JumpData {
     // -vi = 1/2 * a * dt
-    const JUMP_VELOCITY: i32 = -1;
-    const GRAVITY: i32 = 1;
-    const JUMP_FRAMES: i32 = 100;
+    const JUMP_VELOCITY: i32 = -2;
+    const GRAVITY: i32 = 2;
+    const JUMP_FRAMES: i32 = 50;
 
     pub fn new() -> Self {
         JumpData {
