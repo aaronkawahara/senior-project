@@ -13,20 +13,21 @@ pub(super) struct JumpData {
 
 impl JumpData {
     // -vi = 1/2 * a * dt
-    const JUMP_VELOCITY: i32 = -2;
-    const GRAVITY: i32 = 2;
-    const JUMP_FRAMES: i32 = 50;
+    const JUMP_VELOCITY: i32 = -8;
+    const GRAVITY: i32 = 8;
+    const FRAMES_TO_APEX: i32 = 30;
+    const MAX_FALLING_VELOCITY: i32 = 8;
 
     pub fn new() -> Self {
         JumpData {
             frames_in_air: 0,
-            gravity: Self::GRAVITY,
+            gravity: 0,
         }
     }
 
     pub fn fall(&mut self, old_vy: &i32) -> i32 {
         self.frames_in_air += 1;
-        old_vy + (self.gravity * self.frames_in_air) / Self::JUMP_FRAMES
+        core::cmp::min(old_vy + (Self::GRAVITY * self.frames_in_air) / Self::FRAMES_TO_APEX, Self::MAX_FALLING_VELOCITY)
     }
 
     pub fn jump(&mut self) -> i32 {

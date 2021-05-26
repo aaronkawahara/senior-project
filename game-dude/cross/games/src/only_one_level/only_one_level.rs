@@ -1,14 +1,17 @@
 use crate::collisions::{BoundingBox, Collideable};
 use crate::common::{MovingObject, Position, Velocity};
-use crate::images::{OnlyLevelJustWallsImage, OnlyOneLevelPlayerImage, OnlyOneLevelPlayerBackgroundImage, SimpleImage};
+use crate::images::{
+    OnlyLevelJustWallsImage, OnlyOneLevelPlayerBackgroundImage, OnlyOneLevelPlayerImage,
+    SimpleImage,
+};
 use crate::rng;
 
-use super::levels::{JumpData};
+use super::levels::JumpData;
 
 use board::input::Inputs;
+use defmt;
 use lcd;
 use stm32l4p5_hal::dma2d::Dma2d;
-use defmt;
 
 pub(crate) fn play(input: &mut Inputs, dma2d: &mut Dma2d, draw_and_wait: fn() -> ()) -> u32 {
     let mut level: Levels = 0;
@@ -54,7 +57,7 @@ impl OnlyLevel {
     pub fn new() -> Self {
         let mut player: Player = Player::new(
             BoundingBox::new(
-                Position::new(0, 0),
+                Position::new(1, 1),
                 Position::new(
                     OnlyOneLevelPlayerImage::WIDTH as i32,
                     OnlyOneLevelPlayerImage::HEIGHT as i32,
@@ -64,7 +67,7 @@ impl OnlyLevel {
             OnlyOneLevelPlayerImage,
         );
 
-        player.hit_box.translate(&Self::START_POSITION);
+        player.hit_box.translate_to(&Self::START_POSITION);
 
         OnlyLevel {
             level: 1,
@@ -76,16 +79,15 @@ impl OnlyLevel {
 
     pub fn process_frame(&mut self, input: &mut Inputs, dma2d: &mut Dma2d) -> Levels {
         let vx: i32 = match (input.left_pressed(), input.right_pressed()) {
-            (true, false) => -1,
-            (false, true) => 1,
+            (true, false) => -3,
+            (false, true) => 3,
             _ => 0,
         };
 
-        let vy: i32 = if self.player_touching_ground && input.up_pressed() {
-            self.player_touching_ground = false;
-            self.jump_data.jump()
-        } else if !self.player_touching_ground {
+        let vy: i32 = if !self.player_touching_ground {
             self.jump_data.fall(&self.player.velocity.y)
+        } else if input.up_pressed() {
+            self.jump_data.jump()
         } else {
             0
         };
@@ -109,14 +111,23 @@ impl OnlyLevel {
                 .hit_box
                 .collides_with_interpolate(&old_hit_box, wall)
             {
-                self.player.push_out_of(collision_location, wall);
+                self.player
+                    .push_out_of(&old_hit_box, collision_location, wall);
             }
 
-            if self.player.hit_box.bottom_right.y == wall.top_left.y &&
-                self.player.hit_box.top_left.x < wall.bottom_right.x &&
-                self.player.hit_box.bottom_right.x > wall.top_left.x
+            if wall.top_left.x < self.player.hit_box.bottom_right.x
+                && wall.bottom_right.x > self.player.hit_box.top_left.x
             {
-                self.player_touching_ground = true;
+                if self.player.hit_box.bottom_right.y == wall.top_left.y {
+                    self.player_touching_ground = true;
+                }
+            }
+
+            if self.player.hit_box.collides_with(wall) {
+                defmt::info!("old player: {}", old_hit_box);
+                defmt::info!("curr player: {}", self.player.hit_box);
+                defmt::info!("wall: {}", wall);
+                panic!();
             }
         }
 
@@ -135,94 +146,94 @@ impl OnlyLevel {
 const WALL_HIT_BOXES: [BoundingBox; 23] = [
     BoundingBox {
         top_left: Position { x: 0, y: 0 },
-        bottom_right: Position { x: 102, y: 68 },
+        bottom_right: Position { x: 103, y: 69 },
     },
     BoundingBox {
-        top_left: Position { x: 102, y: 0 },
-        bottom_right: Position { x: 395, y: 16 },
+        top_left: Position { x: 101, y: 0},
+        bottom_right: Position { x: 396, y: 17 },
     },
     BoundingBox {
-        top_left: Position { x: 154, y: 16 },
-        bottom_right: Position { x: 171, y: 34 },
+        top_left: Position { x: 153, y: 15 },
+        bottom_right: Position { x: 172, y: 35 },
     },
     BoundingBox {
-        top_left: Position { x: 342, y: 16 },
-        bottom_right: Position { x: 359, y: 34 },
+        top_left: Position { x: 341, y: 15},
+        bottom_right: Position { x: 360, y: 35 },
     },
     BoundingBox {
-        top_left: Position { x: 395, y: 0 },
-        bottom_right: Position { x: 479, y: 50 },
+        top_left: Position { x: 394, y: 0 },
+        bottom_right: Position { x: 480, y: 51 },
     },
     BoundingBox {
-        top_left: Position { x: 429, y: 50 },
-        bottom_right: Position { x: 479, y: 84 },
+        top_left: Position { x: 430, y: 49 },
+        bottom_right: Position { x: 480, y: 85 },
     },
     BoundingBox {
-        top_left: Position { x: 445, y: 84 },
-        bottom_right: Position { x: 479, y: 102 },
+        top_left: Position { x: 444, y: 83 },
+        bottom_right: Position { x: 480, y: 103 },
     },
     BoundingBox {
-        top_left: Position { x: 463, y: 102 },
-        bottom_right: Position { x: 479, y: 239 },
+        top_left: Position { x: 462, y: 101 },
+        bottom_right: Position { x: 480, y: 240 },
     },
     BoundingBox {
-        top_left: Position { x: 411, y: 152 },
-        bottom_right: Position { x: 428, y: 171 },
+        top_left: Position { x: 410, y: 151 },
+        bottom_right: Position { x: 429, y: 172 },
     },
     BoundingBox {
-        top_left: Position { x: 411, y: 171 },
-        bottom_right: Position { x: 463, y: 204 },
+        top_left: Position { x: 410, y: 170 },
+        bottom_right: Position { x: 464, y: 205 },
     },
     BoundingBox {
-        top_left: Position { x: 359, y: 239 },
-        bottom_right: Position { x: 479, y: 479 },
+        top_left: Position { x: 358, y: 238 },
+        bottom_right: Position { x: 480, y: 480 },
     },
     BoundingBox {
-        top_left: Position { x: 325, y: 137 },
-        bottom_right: Position { x: 359, y: 153 },
+        top_left: Position { x: 324, y: 136 },
+        bottom_right: Position { x: 360, y: 154 },
     },
     BoundingBox {
-        top_left: Position { x: 309, y: 69 },
-        bottom_right: Position { x: 343, y: 85 },
+        top_left: Position { x: 308, y: 68 },
+        bottom_right: Position { x: 344, y: 86 },
     },
     BoundingBox {
-        top_left: Position { x: 205, y: 119 },
-        bottom_right: Position { x: 273, y: 136 },
+        top_left: Position { x: 204, y: 118 },
+        bottom_right: Position { x: 274, y: 137 },
     },
     BoundingBox {
-        top_left: Position { x: 0, y: 68 },
-        bottom_right: Position { x: 16, y: 153 },
+        top_left: Position { x: 0, y: 67 },
+        bottom_right: Position { x: 17, y: 154 },
     },
     BoundingBox {
-        top_left: Position { x: 0, y: 153 },
-        bottom_right: Position { x: 84, y: 187 },
+        top_left: Position { x: 0, y: 152 },
+        bottom_right: Position { x: 85, y: 188 },
     },
     BoundingBox {
-        top_left: Position { x: 0, y: 187 },
-        bottom_right: Position { x: 68, y: 271 },
+        top_left: Position { x: 0, y: 186 },
+        bottom_right: Position { x: 69, y: 272 },
     },
     BoundingBox {
-        top_left: Position { x: 137, y: 170 },
-        bottom_right: Position { x: 187, y: 187 },
+        top_left: Position { x: 136, y: 169 },
+        bottom_right: Position { x: 188, y: 188 },
     },
     BoundingBox {
-        top_left: Position { x: 68, y: 255 },
-        bottom_right: Position { x: 325, y: 271 },
+        top_left: Position { x: 67, y: 254 },
+        bottom_right: Position { x: 326, y: 272 },
     },
     BoundingBox {
-        top_left: Position { x: 223, y: 187 },
-        bottom_right: Position { x: 273, y: 221 },
+        top_left: Position { x: 222, y: 186 },
+        bottom_right: Position { x: 274, y: 222 },
     },
     BoundingBox {
-        top_left: Position { x: 205, y: 221 },
-        bottom_right: Position { x: 273, y: 255 },
+        top_left: Position { x: 204, y: 220 },
+        bottom_right: Position { x: 274, y: 256 },
     },
     BoundingBox {
-        top_left: Position { x: 309, y: 204 },
-        bottom_right: Position { x: 325, y: 238 },
+        top_left: Position { x: 308, y: 203 },
+        bottom_right: Position { x: 326, y: 239 },
     },
     BoundingBox {
-        top_left: Position { x: 325, y: 221 },
-        bottom_right: Position { x: 359, y: 271 },
+        top_left: Position { x: 324, y: 220 },
+        bottom_right: Position { x: 360, y: 272 },
     },
 ];

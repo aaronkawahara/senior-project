@@ -1,6 +1,6 @@
 use defmt::Format;
 
-use crate::common::{Position};
+use crate::common::Position;
 
 pub trait Collideable<OTHER> {
     fn collides_with(&self, other: &OTHER) -> bool;
@@ -50,6 +50,13 @@ impl BoundingBox {
     pub fn height(&self) -> i32 {
         (self.top_left.y - self.bottom_right.y).abs()
     }
+
+    pub fn center(&self) -> Position {
+        Position::new(
+            (self.top_left.x + self.bottom_right.x) / 2,
+            (self.top_left.y + self.bottom_right.y) / 2,
+        )
+    }
 }
 
 impl Collideable<BoundingBox> for BoundingBox {
@@ -70,24 +77,26 @@ impl Collideable<BoundingBox> for BoundingBox {
         let dy: i32 = self.top_left.y - old_hit_box.top_left.y;
         let steps: i32 = core::cmp::max(dx.abs(), dy.abs());
 
-        for step in 0..steps {
-            let x_step: i32 = (step * dx) / steps;
-            let y_step: i32 = (step * dy) / steps;
+        if steps > 0 {
+            for step in 0..=steps {
+                let x_step: i32 = (step * dx) / steps;
+                let y_step: i32 = (step * dy) / steps;
 
-            let interpolated_hit_box = BoundingBox::new(
-                Position::new(
-                    old_hit_box.top_left.x + x_step,
-                    old_hit_box.top_left.y + y_step,
-                ),
-                Position::new(
-                    old_hit_box.bottom_right.x + x_step,
-                    old_hit_box.bottom_right.y + y_step,
-                ),
-            );
+                let interpolated_hit_box = BoundingBox::new(
+                    Position::new(
+                        old_hit_box.top_left.x + x_step,
+                        old_hit_box.top_left.y + y_step,
+                    ),
+                    Position::new(
+                        old_hit_box.bottom_right.x + x_step,
+                        old_hit_box.bottom_right.y + y_step,
+                    ),
+                );
 
-            if interpolated_hit_box.collides_with(other) {
-                collision_location = Some(interpolated_hit_box);
-                break;
+                if interpolated_hit_box.collides_with(other) {
+                    collision_location = Some(interpolated_hit_box);
+                    break;
+                }
             }
         }
 

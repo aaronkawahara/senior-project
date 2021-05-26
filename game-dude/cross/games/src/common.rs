@@ -1,7 +1,7 @@
 use crate::collisions::BoundingBox;
 use crate::images::SimpleImage;
 use core::ops::{Add, Sub};
-use defmt::Format;
+use defmt::{self, Format};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Format)]
 pub struct Position {
@@ -80,41 +80,34 @@ impl<I: SimpleImage> MovingObject<I> {
 
     pub fn push_out_of(
         &mut self,
+        &old_hit_box: &BoundingBox,
         mut collision_location: BoundingBox,
         other_hit_box: &BoundingBox,
     ) {
-        if self.velocity.y >= 0 && collision_location.bottom_right.y > other_hit_box.top_left.y {
-            collision_location.translate(&Position::new(
-                0,
-                other_hit_box.top_left.y - collision_location.bottom_right.y,
-            ));
-            self.velocity.y = 0;
-        }else if self.velocity.y <= 0 && collision_location.top_left.y < other_hit_box.bottom_right.y {
-            collision_location.translate(&Position::new(
-                0,
-                other_hit_box.bottom_right.y - collision_location.top_left.y,
-            ));
-            self.velocity.y = 0;
-        }
-
-        if self.velocity.x >= 0
-            && self.hit_box.bottom_right.x < other_hit_box.top_left.x
-            && collision_location.bottom_right.x > other_hit_box.top_left.x
-        {
+        if self.velocity.x > 0 && other_hit_box.top_left.x >= old_hit_box.bottom_right.x {
             collision_location.translate(&Position::new(
                 other_hit_box.top_left.x - collision_location.bottom_right.x,
                 0,
             ));
             self.velocity.x = 0;
-        } else if self.velocity.x <= 0
-            && self.hit_box.top_left.x > other_hit_box.bottom_right.x
-            && collision_location.top_left.x < other_hit_box.bottom_right.x
-        {
+        } else if self.velocity.x < 0 && other_hit_box.bottom_right.x <= old_hit_box.top_left.x {
             collision_location.translate(&Position::new(
                 other_hit_box.bottom_right.x - collision_location.top_left.x,
                 0,
             ));
             self.velocity.x = 0;
+        } else if self.velocity.y > 0 {
+            collision_location.translate(&Position::new(
+                0,
+                other_hit_box.top_left.y - collision_location.bottom_right.y,
+            ));
+            self.velocity.y = 0;
+        } else if self.velocity.y < 0 {
+            collision_location.translate(&Position::new(
+                0,
+                other_hit_box.bottom_right.y - collision_location.top_left.y,
+            ));
+            self.velocity.y = 0;
         }
 
         self.hit_box = collision_location;
