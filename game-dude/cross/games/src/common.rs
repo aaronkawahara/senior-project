@@ -87,13 +87,13 @@ impl<I: SimpleImage> MovingObject<I> {
         if self.velocity.x > 0 && other_hit_box.top_left.x >= old_hit_box.bottom_right.x {
             collision_location.translate(&Position::new(
                 other_hit_box.top_left.x - collision_location.bottom_right.x,
-                0,
+                self.hit_box.top_left.y - collision_location.top_left.y,
             ));
             self.velocity.x = 0;
         } else if self.velocity.x < 0 && other_hit_box.bottom_right.x <= old_hit_box.top_left.x {
             collision_location.translate(&Position::new(
                 other_hit_box.bottom_right.x - collision_location.top_left.x,
-                0,
+                self.hit_box.top_left.y - collision_location.top_left.y,
             ));
             self.velocity.x = 0;
         } else if self.velocity.y > 0 {
