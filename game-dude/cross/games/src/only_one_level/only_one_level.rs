@@ -40,6 +40,7 @@ struct OnlyLevel {
     player: Player,
     player_touching_ground: bool,
     jump_data: JumpData,
+    button_pressed: bool,
 }
 
 impl OnlyLevel {
@@ -65,6 +66,7 @@ impl OnlyLevel {
             player,
             player_touching_ground: false,
             jump_data: JumpData::new(),
+            button_pressed: false,
         }
     }
 
@@ -95,6 +97,17 @@ impl OnlyLevel {
         self.player.set_velocity(Velocity::new(vx, vy));
         self.player.hit_box.translate(&self.player.velocity);
         self.player_touching_ground = false;
+
+        if !self.button_pressed {
+            if let Some(collision_location) = self
+                .player
+                .hit_box
+                .collides_with_interpolate(&old_hit_box, &GATE_HIT_BOX)
+            {
+                self.player
+                    .push_out_of(&old_hit_box, collision_location, &GATE_HIT_BOX);
+            }
+        }
 
         for wall in WALL_HIT_BOXES.iter() {
             if let Some(collision_location) = self
@@ -128,8 +141,13 @@ impl OnlyLevel {
             }
         }
         
+        if !self.button_pressed && self.player.hit_box.collides_with(&BUTTON_HIT_BOX) {
+            hide_gate(dma2d);
+            self.button_pressed = true;
+        }
+
         dma2d.draw_rgb8_image(
-            if self.player.hit_box.collides_with(&BUTTON_HIT_BOX) {
+            if self.button_pressed {
                 OnlyLevelButtonPressedImage.data_address()
             } else {
                 OnlyLevelButtonImage.data_address()

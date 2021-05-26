@@ -3,6 +3,8 @@ use crate::common::Position;
 use crate::images::OnlyLevelButtonImage;
 use crate::images::OnlyLevelEnvironmentImage;
 use crate::images::OnlyLevelFinishPipeImage;
+use crate::images::OnlyLevelGateHiddenImage;
+use crate::images::OnlyLevelGateImage;
 use crate::images::OnlyOneLevelPlayerImage;
 use crate::images::SimpleImage;
 
@@ -15,6 +17,28 @@ pub(super) fn draw_environment(dma2d: &mut Dma2d) {
         0,
         OnlyLevelEnvironmentImage::WIDTH,
         OnlyLevelEnvironmentImage::HEIGHT,
+    );
+
+    show_gate(dma2d);
+}
+
+pub(super) fn show_gate(dma2d: &mut Dma2d) {
+    dma2d.draw_rgb8_image(
+        OnlyLevelGateImage.data_address(),
+        GATE_TOP_LEFT.x as u32, 
+        GATE_TOP_LEFT.y as u32, 
+        OnlyLevelGateImage::WIDTH, 
+        OnlyLevelGateImage::HEIGHT
+    );
+}
+
+pub(super) fn hide_gate(dma2d: &mut Dma2d) {
+    dma2d.draw_rgb8_image(
+        OnlyLevelGateHiddenImage.data_address(),
+        GATE_TOP_LEFT.x as u32, 
+        GATE_TOP_LEFT.y as u32, 
+        OnlyLevelGateHiddenImage::WIDTH, 
+        OnlyLevelGateHiddenImage::HEIGHT
     );
 }
 
@@ -46,6 +70,18 @@ pub(super) const FINISH_PIPE_HIT_BOX: BoundingBox = BoundingBox {
     bottom_right: Position {
         x: FINISH_PIPE_TOP_LEFT.x + OnlyLevelFinishPipeImage::WIDTH as i32 + 1,
         y: FINISH_PIPE_TOP_LEFT.y + OnlyLevelFinishPipeImage::HEIGHT as i32 + 1,
+    },
+};
+
+pub(super) const GATE_TOP_LEFT: Position = Position { x: 413, y: 205 };
+pub(super) const GATE_HIT_BOX: BoundingBox = BoundingBox {
+    top_left: Position {
+        x: GATE_TOP_LEFT.x - 1,
+        y: GATE_TOP_LEFT.y - 1,
+    },
+    bottom_right: Position {
+        x: GATE_TOP_LEFT.x + OnlyLevelGateImage::WIDTH as i32 + 1,
+        y: GATE_TOP_LEFT.y + OnlyLevelGateImage::HEIGHT as i32 + 1,
     },
 };
 
