@@ -1,6 +1,6 @@
 use crate::collisions::{BoundingBox, Collideable};
 use crate::common::{MovingObject, Position, Velocity};
-use crate::images::{OnlyOneLevelPlayerBackgroundImage, OnlyOneLevelPlayerImage, SimpleImage};
+use crate::images::{OnlyLevelButtonImage, OnlyLevelButtonPressedImage, OnlyLevelFinishPipeImage, OnlyLevelStartPipeImage, OnlyOneLevelPlayerBackgroundImage, OnlyOneLevelPlayerImage, SimpleImage};
 use crate::rng;
 
 use super::environment::*;
@@ -129,12 +129,44 @@ impl OnlyLevel {
         }
         
         dma2d.draw_rgb8_image(
+            if self.player.hit_box.collides_with(&BUTTON_HIT_BOX) {
+                OnlyLevelButtonPressedImage.data_address()
+            } else {
+                OnlyLevelButtonImage.data_address()
+            },
+            BUTTON_HIT_BOX.top_left.x as u32 + 1, 
+            BUTTON_HIT_BOX.top_left.y as u32 + 1, 
+            OnlyLevelButtonImage::WIDTH,
+            OnlyLevelButtonImage::HEIGHT
+        );
+
+        dma2d.draw_rgb8_image(
             OnlyOneLevelPlayerImage.data_address(),
             core::cmp::max(0, self.player.hit_box.top_left.x) as u32,
             core::cmp::max(0, self.player.hit_box.top_left.y) as u32,
             OnlyOneLevelPlayerImage::WIDTH,
             OnlyOneLevelPlayerImage::HEIGHT,
         );
+
+        dma2d.draw_rgb8_image(
+            OnlyLevelFinishPipeImage.data_address(), 
+            FINISH_PIPE_TOP_LEFT.x as u32, 
+            FINISH_PIPE_TOP_LEFT.y as u32, 
+            OnlyLevelFinishPipeImage::WIDTH, 
+            OnlyLevelFinishPipeImage::HEIGHT
+        );
+
+        dma2d.draw_rgb8_image(
+            OnlyLevelStartPipeImage.data_address(), 
+            START_PIPE_TOP_LEFT.x as u32, 
+            START_PIPE_TOP_LEFT.y as u32, 
+            OnlyLevelStartPipeImage::WIDTH, 
+            OnlyLevelStartPipeImage::HEIGHT
+        );
+
+        if FINISH_PIPE_HIT_BOX.surrounds(&self.player.hit_box) {
+            self.level += 1;
+        }
 
         self.level
     }

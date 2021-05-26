@@ -1,6 +1,8 @@
 use crate::collisions::BoundingBox;
 use crate::common::Position;
+use crate::images::OnlyLevelButtonImage;
 use crate::images::OnlyLevelEnvironmentImage;
+use crate::images::OnlyLevelFinishPipeImage;
 use crate::images::OnlyOneLevelPlayerImage;
 use crate::images::SimpleImage;
 
@@ -20,6 +22,31 @@ const SPAWN_TOP_MIDDLE: Position = Position { x: 74, y: 91 };
 pub(super) const SPAWN_TOP_LEFT: Position = Position {
     x: SPAWN_TOP_MIDDLE.x - (OnlyOneLevelPlayerImage::WIDTH / 2) as i32,
     y: SPAWN_TOP_MIDDLE.y,
+};
+
+pub(super) const BUTTON_TOP_LEFT: Position = Position { x: 233, y: 111 };
+pub(super) const BUTTON_HIT_BOX: BoundingBox = BoundingBox {
+    top_left: Position {
+        x: BUTTON_TOP_LEFT.x - 1,
+        y: BUTTON_TOP_LEFT.y - 1,
+    },
+    bottom_right: Position {
+        x: BUTTON_TOP_LEFT.x + OnlyLevelButtonImage::WIDTH as i32 + 1,
+        y: BUTTON_TOP_LEFT.y + OnlyLevelButtonImage::HEIGHT as i32 + 1,
+    },
+};
+
+pub(super) const START_PIPE_TOP_LEFT: Position = Position { x: 62, y: 69 };
+pub(super) const FINISH_PIPE_TOP_LEFT: Position = Position { x: 442, y: 218 };
+pub(super) const FINISH_PIPE_HIT_BOX: BoundingBox = BoundingBox {
+    top_left: Position {
+        x: FINISH_PIPE_TOP_LEFT.x - 1,
+        y: FINISH_PIPE_TOP_LEFT.y - 1,
+    },
+    bottom_right: Position {
+        x: FINISH_PIPE_TOP_LEFT.x + OnlyLevelFinishPipeImage::WIDTH as i32 + 1,
+        y: FINISH_PIPE_TOP_LEFT.y + OnlyLevelFinishPipeImage::HEIGHT as i32 + 1,
+    },
 };
 
 pub(super) const WALL_HIT_BOXES: [BoundingBox; 23] = [
@@ -147,7 +174,3 @@ pub(super) const SPIKE_HIT_BOXES: [BoundingBox; 7] = [
         bottom_right: Position { x: 282, y: 30 },
     },
 ];
-
-// pub(super) const SPIKE_IMAGES: [SimpleImage; 7] = [
-
-// ];

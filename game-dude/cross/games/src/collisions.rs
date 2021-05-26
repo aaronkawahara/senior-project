@@ -7,6 +7,7 @@ pub trait Collideable<OTHER> {
     fn collides_with_interpolate(&self, old_hit_box: &Self, other: &OTHER) -> Option<Self>
     where
         Self: Sized;
+    fn surrounds(&self, other: &OTHER) -> bool;
 }
 
 #[derive(Clone, Copy, Debug, Format)]
@@ -101,5 +102,12 @@ impl Collideable<BoundingBox> for BoundingBox {
         }
 
         collision_location
+    }
+
+    fn surrounds(&self, other: &BoundingBox) -> bool {
+        self.top_left.x < other.top_left.x &&
+        self.bottom_right.x > other.bottom_right.x &&
+        self.top_left.y < other.top_left.y &&
+        self.bottom_right.y > other.bottom_right.y
     }
 }
