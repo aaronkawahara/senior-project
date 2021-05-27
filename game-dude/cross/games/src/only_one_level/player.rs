@@ -124,8 +124,7 @@ impl Default for PlayerPhysics {
             max_falling_velocity: Self::MAX_FALLING_VELOCITY,
             jump_speed: Self::JUMP_SPEED,
             ground_speed: Self::GROUND_SPEED,
-            air_speed: Self::AIR_SPEED,
-            
+            air_speed: Self::AIR_SPEED,      
         }
     }
 }

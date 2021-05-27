@@ -2,7 +2,7 @@ use crate::collisions::{BoundingBox, Collideable};
 use crate::rng;
 
 use super::environment::{self, Environment};
-use super::levels::{*, self};
+use super::levels::{self, *};
 use super::player::*;
 
 use board::input::Inputs;
@@ -14,13 +14,15 @@ pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, draw_and_wait: fn() -> ())
     rng::init_rng();
     let mut level: usize = 1;
 
-    while level <= levels::LAST_LEVEL {
-        level = match level {
-            1 => { OnlyLevel::new(dma2d, LevelOne).play(input, draw_and_wait); 2 }
-            2 => { OnlyLevel::new(dma2d, LevelTwo).play(input, draw_and_wait); 3 }
-            _ => panic!("current level exceeds intended limit")
-        };
-    }
+    // while level <= levels::LAST_LEVEL {
+    //     level = match level {
+    //         1 => { OnlyLevel::new(dma2d, LevelOne).play(input, draw_and_wait); 2 }
+    //         2 => { OnlyLevel::new(dma2d, LevelTwo).play(input, draw_and_wait); 3 }
+    //         _ => panic!("current level exceeds intended limit")
+    //     };
+    // }
+
+    OnlyLevel::new(dma2d, LevelFour).play(input, draw_and_wait);
 
     dma2d.fill_background(
         0x00_00_00_00,
@@ -41,7 +43,8 @@ impl<'d, L: LevelBehavior> OnlyLevel<'d, L> {
     pub fn new(dma2d: &'d Dma2d, level: L) -> Self {
         let mut player = Player::new(dma2d);
         let mut environment = Environment::new(dma2d);
-        level.init(&mut player, &mut environment);
+        level.init_environment(&mut environment);
+        level.init_player(&mut player);
 
         OnlyLevel {
             player,

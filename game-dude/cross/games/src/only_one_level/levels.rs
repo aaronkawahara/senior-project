@@ -10,12 +10,15 @@ use board::input::Inputs;
 pub(super) const LAST_LEVEL: usize = 2;
 
 pub(super) trait LevelBehavior {
-    fn init(&self, player: &mut Player, environment: &mut Environment) {
-        environment.release_button();
-        environment.close_gate();
+    fn init_environment(&self, environment: &mut Environment) {
         environment.draw_walls_and_spikes();
-        environment.draw_gate();
+        environment.release_button();
         environment.draw_button();
+        environment.close_gate();
+        environment.draw_gate();
+    }
+
+    fn init_player(&self, player: &mut Player) {
         player.change_physics(PlayerPhysics::default());
         player.respawn();
     }
@@ -60,7 +63,8 @@ pub(super) trait LevelBehavior {
     }
 
     fn handle_spike_collision(&self, player: &mut Player, environment: &mut Environment) {
-        self.init(player, environment);
+        self.init_player(player);
+        self.init_environment(environment);
     }
 }
 
@@ -102,12 +106,42 @@ impl LevelBehavior for LevelTwo {
 }
 
 pub(super) struct LevelThree;
-// wall starts hidden
-// button press shows wall
+impl LevelBehavior for LevelThree {
+    // wall starts hidden
+    // button press shows wall
+
+    fn init_environment(&self, environment: &mut Environment) {
+        environment.draw_walls_and_spikes();
+        environment.release_button();
+        environment.draw_button();
+        environment.open_gate();
+        environment.draw_gate();
+    }
+
+    fn handle_button_press(&self, environment: &mut Environment) {
+        environment.press_button();
+        environment.close_gate();
+        environment.draw_gate();
+    }
+}
 
 pub(super) struct LevelFour;
-// lower gravity -> jump higher
-// max falling velocity very slow
+impl LevelBehavior for LevelFour {
+    // lower gravity -> jump higher
+    // max falling velocity very slow
+
+    fn init_player(&self, player: &mut Player) {
+        const GRAVITY: i32 = 3;
+        const MAX_FALLING_VELOCITY: i32 = 1;
+
+        let mut new_physics = PlayerPhysics::default();
+        new_physics.gravity = GRAVITY;
+        new_physics.max_falling_velocity = MAX_FALLING_VELOCITY;
+
+        player.change_physics(new_physics);
+        player.respawn();
+    }   
+}
 
 pub(super) struct LevelFive;
 // veritcal wall touching bounces back with 70-90% velocity
