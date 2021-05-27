@@ -1,10 +1,12 @@
 use crate::collisions::BoundingBox;
 use crate::common::Position;
 use crate::images::OnlyLevelButtonImage;
+use crate::images::OnlyLevelButtonPressedImage;
 use crate::images::OnlyLevelEnvironmentImage;
 use crate::images::OnlyLevelFinishPipeImage;
 use crate::images::OnlyLevelGateHiddenImage;
 use crate::images::OnlyLevelGateImage;
+use crate::images::OnlyLevelStartPipeImage;
 use crate::images::OnlyOneLevelPlayerImage;
 use crate::images::SimpleImage;
 
@@ -20,6 +22,38 @@ pub(super) fn draw_environment(dma2d: &mut Dma2d) {
     );
 
     show_gate(dma2d);
+}
+
+pub(super) fn draw_button(dma2d: &mut Dma2d, is_pressed: bool) {
+    dma2d.draw_rgb8_image(
+        if is_pressed {
+            OnlyLevelButtonPressedImage.data_address()
+        } else {
+            OnlyLevelButtonImage.data_address()
+        },
+        BUTTON_HIT_BOX.top_left.x as u32 + 1, 
+        BUTTON_HIT_BOX.top_left.y as u32 + 1, 
+        OnlyLevelButtonImage::WIDTH,
+        OnlyLevelButtonImage::HEIGHT
+    );
+}
+
+pub(super) fn draw_pipes(dma2d: &mut Dma2d) {
+    dma2d.draw_rgb8_image(
+        OnlyLevelFinishPipeImage.data_address(), 
+        FINISH_PIPE_TOP_LEFT.x as u32, 
+        FINISH_PIPE_TOP_LEFT.y as u32, 
+        OnlyLevelFinishPipeImage::WIDTH, 
+        OnlyLevelFinishPipeImage::HEIGHT
+    );
+
+    dma2d.draw_rgb8_image(
+        OnlyLevelStartPipeImage.data_address(), 
+        START_PIPE_TOP_LEFT.x as u32, 
+        START_PIPE_TOP_LEFT.y as u32, 
+        OnlyLevelStartPipeImage::WIDTH, 
+        OnlyLevelStartPipeImage::HEIGHT
+    );
 }
 
 pub(super) fn show_gate(dma2d: &mut Dma2d) {

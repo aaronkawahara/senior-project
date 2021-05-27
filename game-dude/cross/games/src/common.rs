@@ -77,39 +77,4 @@ impl<I: SimpleImage> MovingObject<I> {
     pub fn set_velocity(&mut self, velocity: Velocity) {
         self.velocity = velocity;
     }
-
-    pub fn push_out_of(
-        &mut self,
-        &old_hit_box: &BoundingBox,
-        mut collision_location: BoundingBox,
-        other_hit_box: &BoundingBox,
-    ) {
-        if self.velocity.x > 0 && other_hit_box.top_left.x >= old_hit_box.bottom_right.x {
-            collision_location.translate(&Position::new(
-                other_hit_box.top_left.x - collision_location.bottom_right.x,
-                self.hit_box.top_left.y - collision_location.top_left.y,
-            ));
-            self.velocity.x = 0;
-        } else if self.velocity.x < 0 && other_hit_box.bottom_right.x <= old_hit_box.top_left.x {
-            collision_location.translate(&Position::new(
-                other_hit_box.bottom_right.x - collision_location.top_left.x,
-                self.hit_box.top_left.y - collision_location.top_left.y,
-            ));
-            self.velocity.x = 0;
-        } else if self.velocity.y > 0 {
-            collision_location.translate(&Position::new(
-                0,
-                other_hit_box.top_left.y - collision_location.bottom_right.y,
-            ));
-            self.velocity.y = 0;
-        } else if self.velocity.y < 0 {
-            collision_location.translate(&Position::new(
-                0,
-                other_hit_box.bottom_right.y - collision_location.top_left.y,
-            ));
-            self.velocity.y = 0;
-        }
-
-        self.hit_box = collision_location;
-    }
 }
