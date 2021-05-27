@@ -1,52 +1,105 @@
-use crate::common::Velocity;
+use crate::{collisions::Collideable, common::Velocity};
 
-use super::only_one_level::Player;
+use super::{
+    environment::{self, Environment},
+    player::*,
+};
 
 use board::input::Inputs;
 
+pub(super) const LAST_LEVEL: usize = 2;
+
 pub(super) trait LevelBehavior {
+    fn init(&self, player: &mut Player, environment: &mut Environment) {
+        environment.release_button();
+        environment.close_gate();
+        environment.draw_walls_and_spikes();
+        environment.draw_gate();
+        environment.draw_button();
+        player.change_physics(PlayerPhysics::default());
+        player.respawn();
+    }
+
     fn calculate_player_vx(&self, input: &mut Inputs, player: &Player) -> i32 {
-        const MOVEMENT_SPEED: i32 = 3;
+        let player_physics = player.physics();
 
         match (input.left_pressed(), input.right_pressed()) {
-            (true, false) => -MOVEMENT_SPEED,
-            (false, true) => MOVEMENT_SPEED,
+            (true, false) if player.on_ground => -player_physics.ground_speed,
+            (false, true) if player.on_ground => player_physics.ground_speed,
+            (true, false) if !player.on_ground => -player_physics.air_speed,
+            (false, true) if !player.on_ground => player_physics.air_speed,
             _ => 0,
         }
     }
 
     fn calculate_player_vy(&self, input: &mut Inputs, player: &Player) -> i32 {
-        const GRAVITY: i32 = 8;
-        const FRAMES_TO_APEX: i32 = 30;
-        const MAX_FALLING_VELOCITY: i32 = 8;
-        const JUMP_SPEED: i32 = -8;
+        let player_physics = player.physics();
 
         if !player.on_ground {
             core::cmp::min(
-                player.velocity.y + (GRAVITY * player.frames_in_air) / FRAMES_TO_APEX,
-                MAX_FALLING_VELOCITY,
+                player.velocity.y
+                    + (player_physics.gravity * player.frames_in_air)
+                        / player_physics.frames_to_apex,
+                player_physics.max_falling_velocity,
             )
         } else if input.up_pressed() {
-            JUMP_SPEED
+            player_physics.jump_speed
         } else {
             0
         }
     }
 
-    fn next(&self) -> Option<&dyn LevelBehavior>;
-}
+    fn button_conditions_met(&self, player: &Player, environment: &Environment) -> bool {
+        !environment.button_pressed() && player.hit_box.collides_with(&environment::BUTTON_HIT_BOX)
+    }
 
-pub(super) struct LevelOne;
-// normal input
-// normal init
-impl LevelBehavior for LevelOne {
-    fn next(&self) -> Option<&dyn LevelBehavior> {
-        None
+    fn handle_button_press(&self, environment: &mut Environment) {
+        environment.press_button();
+        environment.open_gate();
+        environment.draw_gate();
+    }
+
+    fn handle_spike_collision(&self, player: &mut Player, environment: &mut Environment) {
+        self.init(player, environment);
     }
 }
 
+pub(super) struct LevelOne;
+impl LevelBehavior for LevelOne {}
+
 pub(super) struct LevelTwo;
-// controls inverted
+impl LevelBehavior for LevelTwo {
+    // controls inverted
+    
+    fn calculate_player_vx(&self, input: &mut Inputs, player: &Player) -> i32 {
+        let player_physics = player.physics();
+
+        match (input.left_pressed(), input.right_pressed()) {
+            (true, false) if player.on_ground => player_physics.ground_speed,
+            (false, true) if player.on_ground => -player_physics.ground_speed,
+            (true, false) if !player.on_ground => player_physics.air_speed,
+            (false, true) if !player.on_ground => -player_physics.air_speed,
+            _ => 0,
+        }
+    }
+
+    fn calculate_player_vy(&self, input: &mut Inputs, player: &Player) -> i32 {
+        let player_physics = player.physics();
+
+        if !player.on_ground {
+            core::cmp::min(
+                player.velocity.y
+                    + (player_physics.gravity * player.frames_in_air)
+                        / player_physics.frames_to_apex,
+                player_physics.max_falling_velocity,
+            )
+        } else if input.down_pressed() {
+            player_physics.jump_speed
+        } else {
+            0
+        }
+    }
+}
 
 pub(super) struct LevelThree;
 // wall starts hidden

@@ -3,3 +3,4 @@ pub(crate) use only_one_level::play;
 
 mod environment;
 mod levels;
+mod player;
