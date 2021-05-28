@@ -22,7 +22,7 @@ pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, draw_and_wait: fn() -> ())
     //     };
     // }
 
-    OnlyLevel::new(dma2d, LevelFour).play(input, draw_and_wait);
+    OnlyLevel::new(dma2d, BouncyWalls).play(input, draw_and_wait);
 
     dma2d.fill_background(
         0x00_00_00_00,
@@ -33,13 +33,13 @@ pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, draw_and_wait: fn() -> ())
     0
 }
 
-pub(super) struct OnlyLevel<'d, L: LevelBehavior> {
+pub(super) struct OnlyLevel<'d, L: Level> {
     player: Player<'d>,
     environment: Environment<'d>,
     level: L,
 }
 
-impl<'d, L: LevelBehavior> OnlyLevel<'d, L> {
+impl<'d, L: Level> OnlyLevel<'d, L> {
     pub fn new(dma2d: &'d Dma2d, level: L) -> Self {
         let mut player = Player::new(dma2d);
         let mut environment = Environment::new(dma2d);
@@ -59,10 +59,7 @@ impl<'d, L: LevelBehavior> OnlyLevel<'d, L> {
         }
     }
 
-    pub fn process_frame(
-        &mut self,
-        input: &mut Inputs,
-    ) -> bool {
+    pub fn process_frame(&mut self, input: &mut Inputs) -> bool {
         self.environment.draw_button();
         let old_hit_box: BoundingBox = self.player.hit_box.clone();
         self.player.erase_image();
@@ -103,7 +100,9 @@ impl<'d, L: LevelBehavior> OnlyLevel<'d, L> {
             self.player.frames_in_air + 1
         };
 
-        if !self.environment.gate_opened() && self.player.hit_box.bottom_right.x > environment::GATE_HIT_BOX.top_left.x {
+        if !self.environment.gate_opened()
+            && self.player.hit_box.bottom_right.x > environment::GATE_HIT_BOX.top_left.x
+        {
             if let Some(collision_location) = self
                 .player
                 .hit_box
@@ -119,11 +118,15 @@ impl<'d, L: LevelBehavior> OnlyLevel<'d, L> {
 
         for spike in environment::SPIKE_HIT_BOXES.iter() {
             if self.player.hit_box.collides_with(spike) {
-                self.level.handle_spike_collision(&mut self.player, &mut self.environment);
+                self.level
+                    .handle_spike_collision(&mut self.player, &mut self.environment);
             }
         }
 
-        if self.level.button_conditions_met(&self.player, &self.environment) {
+        if self
+            .level
+            .button_conditions_met(&self.player, &self.environment)
+        {
             self.level.handle_button_press(&mut self.environment);
         }
 

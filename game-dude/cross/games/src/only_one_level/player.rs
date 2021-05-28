@@ -1,6 +1,10 @@
 use stm32l4p5_hal::dma2d::Dma2d;
 
-use crate::{collisions::BoundingBox, common::{Position, Velocity}, images::{OnlyOneLevelPlayerBackgroundImage, OnlyOneLevelPlayerImage, SimpleImage}};
+use crate::{
+    collisions::BoundingBox,
+    common::{Position, Velocity},
+    images::{OnlyOneLevelPlayerBackgroundImage, OnlyOneLevelPlayerImage, SimpleImage},
+};
 
 use super::environment;
 
@@ -62,20 +66,36 @@ impl<'a> Player<'a> {
             ));
             self.velocity.x = 0;
         } else if self.velocity.y > 0 {
+            self.velocity.y = -(self.velocity.y * self.physics.bounce_factor_tenths) / 10;
+            let distance_to_ground = other_hit_box.top_left.y - old_hit_box.bottom_right.y;
+            let bounce_height = distance_to_ground + self.velocity.y;
             collision_location.translate(&Position::new(
                 0,
-                other_hit_box.top_left.y - collision_location.bottom_right.y,
+                other_hit_box.top_left.y - collision_location.bottom_right.y + bounce_height,
             ));
-            self.velocity.y = 0;
         } else if self.velocity.y < 0 {
+            self.velocity.y = -(self.velocity.y * self.physics.bounce_factor_tenths) / 10;
+            let distance_to_ceiling = other_hit_box.bottom_right.y - old_hit_box.top_left.y;
+            let bounce_depth = distance_to_ceiling + self.velocity.y;
             collision_location.translate(&Position::new(
                 0,
-                other_hit_box.bottom_right.y - collision_location.top_left.y,
+                other_hit_box.bottom_right.y - collision_location.top_left.y + bounce_depth,
             ));
-            self.velocity.y = 0;
         }
 
         self.hit_box = collision_location;
+    }
+
+    pub fn calculate_fall_speed(&self) -> i32 {
+        core::cmp::min(
+            self.velocity.y
+                + (self.physics.gravity * self.frames_in_air) / self.physics.frames_to_apex,
+            self.physics.max_falling_velocity,
+        )
+    }
+
+    pub fn jump_speed(&self) -> i32 {
+        self.physics.jump_speed
     }
 
     pub fn erase_image(&self) {
@@ -105,15 +125,17 @@ pub(super) struct PlayerPhysics {
     pub(super) jump_speed: i32,
     pub(super) ground_speed: i32,
     pub(super) air_speed: i32,
+    pub(super) bounce_factor_tenths: i32,
 }
 
 impl PlayerPhysics {
-    const GRAVITY: i32 = 8;
-    const FRAMES_TO_APEX: i32 = 30;
-    const MAX_FALLING_VELOCITY: i32 = 6;
-    const JUMP_SPEED: i32 = -8;
-    const GROUND_SPEED: i32 = 2;
-    const AIR_SPEED: i32 = 5;
+    pub(super) const GRAVITY: i32 = 8;
+    pub(super) const FRAMES_TO_APEX: i32 = 30;
+    pub(super) const MAX_FALLING_VELOCITY: i32 = 6;
+    pub(super) const JUMP_SPEED: i32 = -8;
+    pub(super) const GROUND_SPEED: i32 = 2;
+    pub(super) const AIR_SPEED: i32 = 5;
+    pub(super) const BOUNCE_FACTOR_TENTHS: i32 = 0;
 }
 
 impl Default for PlayerPhysics {
@@ -124,7 +146,8 @@ impl Default for PlayerPhysics {
             max_falling_velocity: Self::MAX_FALLING_VELOCITY,
             jump_speed: Self::JUMP_SPEED,
             ground_speed: Self::GROUND_SPEED,
-            air_speed: Self::AIR_SPEED,      
+            air_speed: Self::AIR_SPEED,
+            bounce_factor_tenths: Self::BOUNCE_FACTOR_TENTHS,
         }
     }
 }

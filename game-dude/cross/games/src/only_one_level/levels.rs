@@ -7,9 +7,9 @@ use super::{
 
 use board::input::Inputs;
 
-pub(super) const LAST_LEVEL: usize = 2;
+pub(super) const LAST_LEVEL: usize = 4;
 
-pub(super) trait LevelBehavior {
+pub(super) trait Level {
     fn init_environment(&self, environment: &mut Environment) {
         environment.draw_walls_and_spikes();
         environment.release_button();
@@ -35,7 +35,7 @@ pub(super) trait LevelBehavior {
         }
     }
 
-    fn calculate_player_vy(&self, input: &mut Inputs, player: &Player) -> i32 {
+    fn calculate_player_vy(&mut self, input: &mut Inputs, player: &Player) -> i32 {
         let player_physics = player.physics();
 
         if !player.on_ground {
@@ -56,7 +56,7 @@ pub(super) trait LevelBehavior {
         !environment.button_pressed() && player.hit_box.collides_with(&environment::BUTTON_HIT_BOX)
     }
 
-    fn handle_button_press(&self, environment: &mut Environment) {
+    fn handle_button_press(&mut self, environment: &mut Environment) {
         environment.press_button();
         environment.open_gate();
         environment.draw_gate();
@@ -68,13 +68,11 @@ pub(super) trait LevelBehavior {
     }
 }
 
-pub(super) struct LevelOne;
-impl LevelBehavior for LevelOne {}
+pub(super) struct Normal;
+impl Level for Normal {}
 
-pub(super) struct LevelTwo;
-impl LevelBehavior for LevelTwo {
-    // controls inverted
-    
+pub(super) struct InvertedControls;
+impl Level for InvertedControls {
     fn calculate_player_vx(&self, input: &mut Inputs, player: &Player) -> i32 {
         let player_physics = player.physics();
 
@@ -87,29 +85,19 @@ impl LevelBehavior for LevelTwo {
         }
     }
 
-    fn calculate_player_vy(&self, input: &mut Inputs, player: &Player) -> i32 {
-        let player_physics = player.physics();
-
+    fn calculate_player_vy(&mut self, input: &mut Inputs, player: &Player) -> i32 {
         if !player.on_ground {
-            core::cmp::min(
-                player.velocity.y
-                    + (player_physics.gravity * player.frames_in_air)
-                        / player_physics.frames_to_apex,
-                player_physics.max_falling_velocity,
-            )
+            player.calculate_fall_speed()
         } else if input.down_pressed() {
-            player_physics.jump_speed
+            player.jump_speed()
         } else {
             0
         }
     }
 }
 
-pub(super) struct LevelThree;
-impl LevelBehavior for LevelThree {
-    // wall starts hidden
-    // button press shows wall
-
+pub(super) struct OpenGate;
+impl Level for OpenGate {
     fn init_environment(&self, environment: &mut Environment) {
         environment.draw_walls_and_spikes();
         environment.release_button();
@@ -118,18 +106,15 @@ impl LevelBehavior for LevelThree {
         environment.draw_gate();
     }
 
-    fn handle_button_press(&self, environment: &mut Environment) {
+    fn handle_button_press(&mut self, environment: &mut Environment) {
         environment.press_button();
         environment.close_gate();
         environment.draw_gate();
     }
 }
 
-pub(super) struct LevelFour;
-impl LevelBehavior for LevelFour {
-    // lower gravity -> jump higher
-    // max falling velocity very slow
-
+pub(super) struct Floaty;
+impl Level for Floaty {
     fn init_player(&self, player: &mut Player) {
         const GRAVITY: i32 = 3;
         const MAX_FALLING_VELOCITY: i32 = 1;
@@ -143,40 +128,125 @@ impl LevelBehavior for LevelFour {
     }   
 }
 
-pub(super) struct LevelFive;
-// veritcal wall touching bounces back with 70-90% velocity
+pub(super) struct BouncyWalls;
+impl Level for BouncyWalls {
+    fn init_player(&self, player: &mut Player) {
+        const BOUNCE_FACTOR_TENTHS: i32 = 8;
 
-pub(super) struct LevelSix;
-// no jumping from input
-// spikes bounce vertically on contact
+        let mut new_physics = PlayerPhysics::default();
+        new_physics.bounce_factor_tenths = BOUNCE_FACTOR_TENTHS;
 
-pub(super) struct LevelSeven;
+        player.change_physics(new_physics);
+        player.respawn();
+    }
+}
+
+pub(super) struct BouncySpikes;
+impl Level for BouncySpikes { 
+    fn calculate_player_vy(&mut self, _input: &mut Inputs, player: &Player) -> i32 {
+        if player.on_ground {
+            0
+        } else {
+            player.calculate_fall_speed()
+        }
+    }
+
+    fn handle_spike_collision(&self, player: &mut Player, _environment: &mut Environment) {
+        const BOUNCE_SPEED: i32 = -16;
+        player.velocity.x = 0;
+        player.velocity.y = BOUNCE_SPEED;
+    }
+}
+
+pub(super) struct DeadlyStripes;
 // stripes throughout level
 // landing on the wrong stripe color kills you
 
-pub(super) struct LevelEight;
-// heavy constant head wind (right to left)
-// walking barely fast
-// jumping decently fast
+pub(super) struct HeadWind;
+impl Level for HeadWind {
+    fn calculate_player_vx(&self, input: &mut Inputs, player: &Player) -> i32 {
+        const HEAD_WIND: i32 = PlayerPhysics::GROUND_SPEED - 1;
+        let player_physics = player.physics();
 
-pub(super) struct LevelNine;
-// no walking backwards (left)
+        (match (input.left_pressed(), input.right_pressed()) {
+            (true, false) if player.on_ground => -player_physics.ground_speed,
+            (false, true) if player.on_ground => player_physics.ground_speed,
+            (true, false) if !player.on_ground => -player_physics.air_speed,
+            (false, true) if !player.on_ground => player_physics.air_speed,
+            _ => 0,
+        }) - HEAD_WIND
+    }
+}
 
-pub(super) struct LevelTen;
-// no jumping
-// gate starts hidden
-// should be able to "walk" accross
+pub(super) struct NoRegrets;
+impl Level for NoRegrets {
+    fn calculate_player_vx(&self, input: &mut Inputs, player: &Player) -> i32 {
+        let player_physics = player.physics();
+
+        match (input.right_pressed(), player.on_ground) {
+            (true, true) => player_physics.ground_speed,
+            (true, false) => player_physics.air_speed,
+            _ => 0
+        }
+    }
+}
+
+pub(super) struct NoHops;
+impl Level for NoHops {
+    fn init_environment(&self, environment: &mut Environment) {
+        environment.draw_walls_and_spikes();
+        environment.release_button();
+        environment.draw_button();
+        environment.open_gate();
+        environment.draw_gate();
+    }
+
+    fn calculate_player_vy(&mut self, input: &mut Inputs, player: &Player) -> i32 {
+        if player.on_ground {
+            0
+        } else {
+            player.calculate_fall_speed()
+        }
+    }
+}
 
 pub(super) struct LevelEleven;
 // gate starts hidden
 // must alternate left right inputs to progress along predetermined path to finish pipe
 
-pub(super) struct LevelTwelve;
-// only one jump allowed
-// must be able to make jump to button
+pub(super) struct OneShot {
+    used_jump: bool,
+}
+impl Level for OneShot {
+    fn calculate_player_vy(&mut self, input: &mut Inputs, player: &Player) -> i32 {
+        let player_physics = player.physics();
 
-pub(super) struct LevelThirteen;
-// must hit button five times to open gate
+        if !self.used_jump && player.on_ground && input.up_pressed() {
+            self.used_jump = true;
+            player_physics.jump_speed
+        } else if player.on_ground {
+            0
+        } else {
+            player.calculate_fall_speed()
+        }
+    }
+}
+
+pub(super) struct TryAgain {
+    button_hits: usize,
+}
+impl Level for TryAgain {
+    fn handle_button_press(&mut self, environment: &mut Environment) {
+        const PRESSES_REQUIRED: usize = 5;
+        environment.button_pressed();
+
+        self.button_hits += 1;
+        if self.button_hits >= PRESSES_REQUIRED {
+            environment.open_gate();
+            environment.draw_gate();
+        }
+    }
+}
 
 pub(super) struct LevelFourteen;
 // normal everything
@@ -189,8 +259,12 @@ pub(super) struct LevelFifteen;
 pub(super) struct LevelSixteen;
 // game logic updates 10 times as slow
 
-pub(super) struct LevelSeventeen;
-// everything invisible except for pipes
+pub(super) struct DoYouRemember;
+impl Level for DoYouRemember {
+    fn init_environment(&self, environment: &mut Environment) {
+        environment.draw_pipes();
+    }
+}
 
 pub(super) struct LevelEighteen;
 // stripes throughout level
