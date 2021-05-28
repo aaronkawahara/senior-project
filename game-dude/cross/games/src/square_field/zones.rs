@@ -3,7 +3,7 @@ use crate::images::SimpleImage;
 use crate::images::SquareImage;
 use crate::rng;
 
-use super::square_field::{Field, Square, SquareField};
+use super::{Field, Square, SquareField};
 
 pub(super) enum Zones {
     Empty(EmptyZone),

@@ -1,4 +1,3 @@
-use defmt;
 use crate::stm32::{dma2d, DMA2D, RCC};
 
 pub trait Dma2dExt {

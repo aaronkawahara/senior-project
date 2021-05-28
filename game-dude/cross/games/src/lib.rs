@@ -32,7 +32,7 @@ pub fn start_game_machine(mut input: Inputs, mut dma2d: Dma2d, draw_and_wait: fn
                 }
             }
             States::Play(Games::OnlyOneLevel) => {
-                let score: u32 = only_one_level::play(&mut input, &mut dma2d, draw_and_wait);
+                let score: u32 = only_one_level::play(&mut input, &dma2d, draw_and_wait);
                 States::GameOver {
                     game: Games::OnlyOneLevel,
                     score,

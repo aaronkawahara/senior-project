@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(option_result_contains)]
 
 use lcd;
 use stm32hal::{

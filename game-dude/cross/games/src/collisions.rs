@@ -51,13 +51,6 @@ impl BoundingBox {
     pub fn height(&self) -> i32 {
         (self.top_left.y - self.bottom_right.y).abs()
     }
-
-    pub fn center(&self) -> Position {
-        Position::new(
-            (self.top_left.x + self.bottom_right.x) / 2,
-            (self.top_left.y + self.bottom_right.y) / 2,
-        )
-    }
 }
 
 impl Collideable<BoundingBox> for BoundingBox {

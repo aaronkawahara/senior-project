@@ -6,7 +6,6 @@ use super::play_again::{draw_play_again_selection, PlayAgainSelected};
 use super::score::Score;
 
 use board::input::Inputs;
-use lcd;
 use stm32l4p5_hal::dma2d::Dma2d;
 
 pub(crate) fn handle_game_over(

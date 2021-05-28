@@ -11,7 +11,7 @@ pub static mut RNG: Option<SmallRng> = None;
 
 pub fn init_rng() {
     unsafe {
-        if let None = &mut RNG {
+        if RNG.is_none() {
             RNG = Some(SmallRng::from_seed(RNG_SEED))
         }
     }

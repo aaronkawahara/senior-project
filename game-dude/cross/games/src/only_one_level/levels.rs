@@ -1,4 +1,4 @@
-use crate::{collisions::Collideable, common::Velocity};
+use crate::collisions::Collideable;
 
 use super::{
     environment::{self, Environment},
@@ -119,13 +119,15 @@ impl Level for Floaty {
         const GRAVITY: i32 = 3;
         const MAX_FALLING_VELOCITY: i32 = 1;
 
-        let mut new_physics = PlayerPhysics::default();
-        new_physics.gravity = GRAVITY;
-        new_physics.max_falling_velocity = MAX_FALLING_VELOCITY;
+        let new_physics = PlayerPhysics {
+            gravity: GRAVITY,
+            max_falling_velocity: MAX_FALLING_VELOCITY,
+            ..Default::default()
+        };
 
         player.change_physics(new_physics);
         player.respawn();
-    }   
+    }
 }
 
 pub(super) struct BouncyWalls;
@@ -133,8 +135,10 @@ impl Level for BouncyWalls {
     fn init_player(&self, player: &mut Player) {
         const BOUNCE_FACTOR_TENTHS: i32 = 8;
 
-        let mut new_physics = PlayerPhysics::default();
-        new_physics.bounce_factor_tenths = BOUNCE_FACTOR_TENTHS;
+        let new_physics = PlayerPhysics {
+            bounce_factor_tenths: BOUNCE_FACTOR_TENTHS,
+            ..Default::default()
+        };
 
         player.change_physics(new_physics);
         player.respawn();
@@ -142,7 +146,7 @@ impl Level for BouncyWalls {
 }
 
 pub(super) struct BouncySpikes;
-impl Level for BouncySpikes { 
+impl Level for BouncySpikes {
     fn calculate_player_vy(&mut self, _input: &mut Inputs, player: &Player) -> i32 {
         if player.on_ground {
             0
@@ -186,7 +190,7 @@ impl Level for NoRegrets {
         match (input.right_pressed(), player.on_ground) {
             (true, true) => player_physics.ground_speed,
             (true, false) => player_physics.air_speed,
-            _ => 0
+            _ => 0,
         }
     }
 }
@@ -201,7 +205,7 @@ impl Level for NoHops {
         environment.draw_gate();
     }
 
-    fn calculate_player_vy(&mut self, input: &mut Inputs, player: &Player) -> i32 {
+    fn calculate_player_vy(&mut self, _input: &mut Inputs, player: &Player) -> i32 {
         if player.on_ground {
             0
         } else {

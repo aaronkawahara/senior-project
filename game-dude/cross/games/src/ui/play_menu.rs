@@ -3,7 +3,6 @@ use crate::images::SimpleImage;
 use crate::Games;
 
 use board::input::Inputs;
-use lcd;
 use stm32l4p5_hal::dma2d::Dma2d;
 
 pub(crate) fn get_game_selection(

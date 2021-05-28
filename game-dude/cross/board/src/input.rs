@@ -68,7 +68,7 @@ pub trait ButtonPressed {
 
 impl<T: InputPin> ButtonPressed for DebouncedInputPin<T, ActiveLow> {
     fn is_pressed(&mut self) -> bool {
-        if let Some(state) = self.update().ok() {
+        if let Ok(state) = self.update() {
             state == DebounceState::Debouncing || state == DebounceState::Active
         } else {
             false
@@ -82,8 +82,8 @@ pub trait ButtonDebounced {
 
 impl<T: InputPin> ButtonDebounced for DebouncedInputPin<T, ActiveLow> {
     fn is_debounced(&mut self) -> bool {
-        if self.update().ok() == Some(DebounceState::Debouncing) {
-            while self.update().ok() == Some(DebounceState::Debouncing) {}
+        if self.update().contains(&DebounceState::Debouncing) {
+            while self.update().contains(&DebounceState::Debouncing) {}
             self.is_active()
         } else {
             false
