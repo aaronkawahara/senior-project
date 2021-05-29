@@ -1,7 +1,6 @@
 #![no_std]
 #![feature(option_result_contains)]
 
-use lcd;
 use stm32hal::{
     dma2d::{Dma2d, Dma2dExt},
     flash::{self, FlashExt},
@@ -14,7 +13,7 @@ use stm32hal::{
 use stm32l4p5_hal as stm32hal;
 
 pub mod input;
-use crate::input::{Inputs, UpPin, DownPin, LeftPin, RightPin};
+use crate::input::{DownPin, Inputs, LeftPin, RightPin, UpPin};
 
 pub struct Board {
     rcc: Rcc,
@@ -31,17 +30,17 @@ impl Board {
 
         // VCO_in = PLL_in / pllm | 2.66MhHz <= VCO_in <= 8MHz
         // 8Mhz = 16MHz / pllm
-        let pllm: u8 = 2;
+        let pll_m: u8 = 2;
 
         // VCO_out = VCO_in * plln | 64MHz <= VCO_out <= 344MHz
         // 240MHz = 8MHz * plln
-        let plln: u8 = 30;
+        let pll_n: u8 = 30;
 
         // output_clk = VCO_out / pllp_div | output_clk = 120MHz max
         // 120MHz = 240MHz / pllp_div
-        let pllp_div = PllDivider::Div2;
+        let pll_p = PllDivider::Div2;
 
-        let pll_config = PllConfig::new(pllm, plln, pllp_div);
+        let pll_config = PllConfig::new(pll_m, pll_n, pll_p);
 
         self.rcc
             .cfgr
@@ -164,202 +163,314 @@ impl Board {
         let pwr = peripherals.PWR.constrain(&mut rcc.apb1r1);
 
         // forced to initialized GPIO here because the HAL I copied sucks
-        let mut gpioa = peripherals.GPIOA.split(&mut rcc.ahb2);
-        let mut gpioc = peripherals.GPIOC.split(&mut rcc.ahb2);
-        let mut gpiod = peripherals.GPIOD.split(&mut rcc.ahb2);
-        let mut gpioe = peripherals.GPIOE.split(&mut rcc.ahb2);
-        let mut gpiof = peripherals.GPIOF.split(&mut rcc.ahb2);
-        let mut gpiog = peripherals.GPIOG.split(&mut rcc.ahb2);
+        let mut gpio_a = peripherals.GPIOA.split(&mut rcc.ahb2);
+        let mut gpio_c = peripherals.GPIOC.split(&mut rcc.ahb2);
+        let mut gpio_d = peripherals.GPIOD.split(&mut rcc.ahb2);
+        let mut gpio_e = peripherals.GPIOE.split(&mut rcc.ahb2);
+        let mut gpio_f = peripherals.GPIOF.split(&mut rcc.ahb2);
+        let mut gpio_g = peripherals.GPIOG.split(&mut rcc.ahb2);
 
         // GPIO config
-        let up: UpPin = gpioc
+        let up: UpPin = gpio_c
             .pc10
-            .into_pull_up_input(&mut gpioc.moder, &mut gpioc.pupdr);
+            .into_pull_up_input(&mut gpio_c.moder, &mut gpio_c.pupdr);
 
-        let down: DownPin = gpioc
+        let down: DownPin = gpio_c
             .pc11
-            .into_pull_up_input(&mut gpioc.moder, &mut gpioc.pupdr);
+            .into_pull_up_input(&mut gpio_c.moder, &mut gpio_c.pupdr);
 
-        let left: LeftPin = gpioc
+        let left: LeftPin = gpio_c
             .pc12
-            .into_pull_up_input(&mut gpioc.moder, &mut gpioc.pupdr);
+            .into_pull_up_input(&mut gpio_c.moder, &mut gpio_c.pupdr);
 
-        let right: RightPin = gpiod
+        let right: RightPin = gpio_d
             .pd2
-            .into_pull_up_input(&mut gpiod.moder, &mut gpiod.pupdr);
+            .into_pull_up_input(&mut gpio_d.moder, &mut gpio_d.pupdr);
 
-        let display_pwr = gpioc.pc1.into_push_pull_output_with_state(
-            &mut gpioc.moder,
-            &mut gpioc.otyper,
+        let display_pwr = gpio_c.pc1.into_push_pull_output_with_state(
+            &mut gpio_c.moder,
+            &mut gpio_c.otyper,
             gpio::State::Low,
         );
 
-        let _pixel_clk = gpioa
+        let _pixel_clk = gpio_a
             .pa4
-            .into_push_pull_output_with_state(&mut gpioa.moder, &mut gpioa.otyper, gpio::State::Low)
-            .into_af11(&mut gpioa.moder, &mut gpioa.afrl)
+            .into_push_pull_output_with_state(
+                &mut gpio_a.moder,
+                &mut gpio_a.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_a.moder, &mut gpio_a.afrl)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _de = gpioc
+        let _de = gpio_c
             .pc0
-            .into_push_pull_output_with_state(&mut gpioc.moder, &mut gpioc.otyper, gpio::State::Low)
-            .into_af11(&mut gpioc.moder, &mut gpioc.afrl)
+            .into_push_pull_output_with_state(
+                &mut gpio_c.moder,
+                &mut gpio_c.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_c.moder, &mut gpio_c.afrl)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _hsync = gpioe
+        let _hsync = gpio_e
             .pe0
-            .into_push_pull_output_with_state(&mut gpioe.moder, &mut gpioe.otyper, gpio::State::Low)
-            .into_af11(&mut gpioe.moder, &mut gpioe.afrl)
+            .into_push_pull_output_with_state(
+                &mut gpio_e.moder,
+                &mut gpio_e.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_e.moder, &mut gpio_e.afrl)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _vsync = gpioe
+        let _vsync = gpio_e
             .pe1
-            .into_push_pull_output_with_state(&mut gpioe.moder, &mut gpioe.otyper, gpio::State::Low)
-            .into_af11(&mut gpioe.moder, &mut gpioe.afrl)
+            .into_push_pull_output_with_state(
+                &mut gpio_e.moder,
+                &mut gpio_e.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_e.moder, &mut gpio_e.afrl)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _r0 = gpiog
+        let _r0 = gpio_g
             .pg13
-            .into_push_pull_output_with_state(&mut gpiog.moder, &mut gpiog.otyper, gpio::State::Low)
-            .into_af11(&mut gpiog.moder, &mut gpiog.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_g.moder,
+                &mut gpio_g.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_g.moder, &mut gpio_g.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _r1 = gpiog
+        let _r1 = gpio_g
             .pg14
-            .into_push_pull_output_with_state(&mut gpiog.moder, &mut gpiog.otyper, gpio::State::Low)
-            .into_af11(&mut gpiog.moder, &mut gpiog.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_g.moder,
+                &mut gpio_g.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_g.moder, &mut gpio_g.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _r2 = gpioe
+        let _r2 = gpio_e
             .pe15
-            .into_push_pull_output_with_state(&mut gpioe.moder, &mut gpioe.otyper, gpio::State::Low)
-            .into_af11(&mut gpioe.moder, &mut gpioe.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_e.moder,
+                &mut gpio_e.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_e.moder, &mut gpio_e.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _r3 = gpiod
+        let _r3 = gpio_d
             .pd8
-            .into_push_pull_output_with_state(&mut gpiod.moder, &mut gpiod.otyper, gpio::State::Low)
-            .into_af11(&mut gpiod.moder, &mut gpiod.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_d.moder,
+                &mut gpio_d.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_d.moder, &mut gpio_d.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _r4 = gpiod
+        let _r4 = gpio_d
             .pd9
-            .into_push_pull_output_with_state(&mut gpiod.moder, &mut gpiod.otyper, gpio::State::Low)
-            .into_af11(&mut gpiod.moder, &mut gpiod.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_d.moder,
+                &mut gpio_d.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_d.moder, &mut gpio_d.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _r5 = gpiod
+        let _r5 = gpio_d
             .pd10
-            .into_push_pull_output_with_state(&mut gpiod.moder, &mut gpiod.otyper, gpio::State::Low)
-            .into_af11(&mut gpiod.moder, &mut gpiod.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_d.moder,
+                &mut gpio_d.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_d.moder, &mut gpio_d.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _r6 = gpiod
+        let _r6 = gpio_d
             .pd11
-            .into_push_pull_output_with_state(&mut gpiod.moder, &mut gpiod.otyper, gpio::State::Low)
-            .into_af11(&mut gpiod.moder, &mut gpiod.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_d.moder,
+                &mut gpio_d.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_d.moder, &mut gpio_d.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _r7 = gpiod
+        let _r7 = gpio_d
             .pd12
-            .into_push_pull_output_with_state(&mut gpiod.moder, &mut gpiod.otyper, gpio::State::Low)
-            .into_af11(&mut gpiod.moder, &mut gpiod.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_d.moder,
+                &mut gpio_d.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_d.moder, &mut gpio_d.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _g0 = gpiof
+        let _g0 = gpio_f
             .pf14
-            .into_push_pull_output_with_state(&mut gpiof.moder, &mut gpiof.otyper, gpio::State::Low)
-            .into_af11(&mut gpiof.moder, &mut gpiof.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_f.moder,
+                &mut gpio_f.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_f.moder, &mut gpio_f.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _g1 = gpiof
+        let _g1 = gpio_f
             .pf15
-            .into_push_pull_output_with_state(&mut gpiof.moder, &mut gpiof.otyper, gpio::State::Low)
-            .into_af11(&mut gpiof.moder, &mut gpiof.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_f.moder,
+                &mut gpio_f.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_f.moder, &mut gpio_f.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _g2 = gpioe
+        let _g2 = gpio_e
             .pe9
-            .into_push_pull_output_with_state(&mut gpioe.moder, &mut gpioe.otyper, gpio::State::Low)
-            .into_af11(&mut gpioe.moder, &mut gpioe.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_e.moder,
+                &mut gpio_e.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_e.moder, &mut gpio_e.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _g3 = gpioe
+        let _g3 = gpio_e
             .pe10
-            .into_push_pull_output_with_state(&mut gpioe.moder, &mut gpioe.otyper, gpio::State::Low)
-            .into_af11(&mut gpioe.moder, &mut gpioe.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_e.moder,
+                &mut gpio_e.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_e.moder, &mut gpio_e.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _g4 = gpioe
+        let _g4 = gpio_e
             .pe11
-            .into_push_pull_output_with_state(&mut gpioe.moder, &mut gpioe.otyper, gpio::State::Low)
-            .into_af11(&mut gpioe.moder, &mut gpioe.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_e.moder,
+                &mut gpio_e.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_e.moder, &mut gpio_e.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _g5 = gpioe
+        let _g5 = gpio_e
             .pe12
-            .into_push_pull_output_with_state(&mut gpioe.moder, &mut gpioe.otyper, gpio::State::Low)
-            .into_af11(&mut gpioe.moder, &mut gpioe.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_e.moder,
+                &mut gpio_e.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_e.moder, &mut gpio_e.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _g6 = gpioe
+        let _g6 = gpio_e
             .pe13
-            .into_push_pull_output_with_state(&mut gpioe.moder, &mut gpioe.otyper, gpio::State::Low)
-            .into_af11(&mut gpioe.moder, &mut gpioe.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_e.moder,
+                &mut gpio_e.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_e.moder, &mut gpio_e.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _g7 = gpioe
+        let _g7 = gpio_e
             .pe14
-            .into_push_pull_output_with_state(&mut gpioe.moder, &mut gpioe.otyper, gpio::State::Low)
-            .into_af11(&mut gpioe.moder, &mut gpioe.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_e.moder,
+                &mut gpio_e.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_e.moder, &mut gpio_e.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _b0 = gpiof
+        let _b0 = gpio_f
             .pf12
-            .into_push_pull_output_with_state(&mut gpiof.moder, &mut gpiof.otyper, gpio::State::Low)
-            .into_af11(&mut gpiof.moder, &mut gpiof.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_f.moder,
+                &mut gpio_f.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_f.moder, &mut gpio_f.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _b1 = gpiof
+        let _b1 = gpio_f
             .pf13
-            .into_push_pull_output_with_state(&mut gpiof.moder, &mut gpiof.otyper, gpio::State::Low)
-            .into_af11(&mut gpiof.moder, &mut gpiof.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_f.moder,
+                &mut gpio_f.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_f.moder, &mut gpio_f.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _b2 = gpiod
+        let _b2 = gpio_d
             .pd14
-            .into_push_pull_output_with_state(&mut gpiod.moder, &mut gpiod.otyper, gpio::State::Low)
-            .into_af11(&mut gpiod.moder, &mut gpiod.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_d.moder,
+                &mut gpio_d.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_d.moder, &mut gpio_d.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _b3 = gpiod
+        let _b3 = gpio_d
             .pd15
-            .into_push_pull_output_with_state(&mut gpiod.moder, &mut gpiod.otyper, gpio::State::Low)
-            .into_af11(&mut gpiod.moder, &mut gpiod.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_d.moder,
+                &mut gpio_d.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_d.moder, &mut gpio_d.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _b4 = gpiod
+        let _b4 = gpio_d
             .pd0
-            .into_push_pull_output_with_state(&mut gpiod.moder, &mut gpiod.otyper, gpio::State::Low)
-            .into_af11(&mut gpiod.moder, &mut gpiod.afrl)
+            .into_push_pull_output_with_state(
+                &mut gpio_d.moder,
+                &mut gpio_d.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_d.moder, &mut gpio_d.afrl)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _b5 = gpiod
+        let _b5 = gpio_d
             .pd1
-            .into_push_pull_output_with_state(&mut gpiod.moder, &mut gpiod.otyper, gpio::State::Low)
-            .into_af11(&mut gpiod.moder, &mut gpiod.afrl)
+            .into_push_pull_output_with_state(
+                &mut gpio_d.moder,
+                &mut gpio_d.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_d.moder, &mut gpio_d.afrl)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _b6 = gpioc
+        let _b6 = gpio_c
             .pc8 // TODO verify if this should be pc7 or pc8
-            .into_push_pull_output_with_state(&mut gpioc.moder, &mut gpioc.otyper, gpio::State::Low)
-            .into_af11(&mut gpioc.moder, &mut gpioc.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_c.moder,
+                &mut gpio_c.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_c.moder, &mut gpio_c.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
-        let _b7 = gpioa
+        let _b7 = gpio_a
             .pa8
-            .into_push_pull_output_with_state(&mut gpioa.moder, &mut gpioa.otyper, gpio::State::Low)
-            .into_af11(&mut gpioa.moder, &mut gpioa.afrh)
+            .into_push_pull_output_with_state(
+                &mut gpio_a.moder,
+                &mut gpio_a.otyper,
+                gpio::State::Low,
+            )
+            .into_af11(&mut gpio_a.moder, &mut gpio_a.afrh)
             .set_speed(gpio::Speed::VeryHigh);
 
         let ltdc =

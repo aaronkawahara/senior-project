@@ -23,8 +23,8 @@ impl<'a> Player<'a> {
             hit_box: BoundingBox::new(
                 Position::new(1, 1),
                 Position::new(
-                    OnlyOneLevelPlayerImage::WIDTH as i32,
-                    OnlyOneLevelPlayerImage::HEIGHT as i32,
+                    i32::from(OnlyOneLevelPlayerImage::WIDTH),
+                    i32::from(OnlyOneLevelPlayerImage::HEIGHT),
                 ),
             ),
             velocity: Velocity::new(0, 0),

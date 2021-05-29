@@ -2,7 +2,7 @@ use crate::collisions::Collideable;
 
 use super::{
     environment::{self, Environment},
-    player::*,
+    player::{Player, PlayerPhysics},
 };
 
 use board::input::Inputs;
@@ -122,7 +122,7 @@ impl Level for Floaty {
         let new_physics = PlayerPhysics {
             gravity: GRAVITY,
             max_falling_velocity: MAX_FALLING_VELOCITY,
-            ..Default::default()
+            ..PlayerPhysics::default()
         };
 
         player.change_physics(new_physics);
@@ -137,7 +137,7 @@ impl Level for BouncyWalls {
 
         let new_physics = PlayerPhysics {
             bounce_factor_tenths: BOUNCE_FACTOR_TENTHS,
-            ..Default::default()
+            ..PlayerPhysics::default()
         };
 
         player.change_physics(new_physics);

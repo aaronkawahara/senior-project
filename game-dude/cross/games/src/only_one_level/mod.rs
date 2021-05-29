@@ -7,13 +7,13 @@ use crate::rng;
 
 use environment::Environment;
 use levels::*;
-use player::*;
+use player::Player;
 
 use board::input::Inputs;
 use stm32l4p5_hal::dma2d::Dma2d;
 
 pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, draw_and_wait: fn() -> ()) -> u32 {
-    rng::init_rng();
+    rng::init();
     let mut level: usize = 1;
 
     // while level <= levels::LAST_LEVEL {
@@ -70,7 +70,7 @@ impl<'d, L: Level> OnlyLevel<'d, L> {
         self.player.hit_box.translate(&self.player.velocity);
         self.player.on_ground = false;
 
-        for wall in environment::WALL_HIT_BOXES.iter() {
+        for wall in &environment::WALL_HIT_BOXES {
             if let Some(collision_location) = self
                 .player
                 .hit_box
@@ -117,7 +117,7 @@ impl<'d, L: Level> OnlyLevel<'d, L> {
             }
         }
 
-        for spike in environment::SPIKE_HIT_BOXES.iter() {
+        for spike in &environment::SPIKE_HIT_BOXES {
             if self.player.hit_box.collides_with(spike) {
                 self.level
                     .handle_spike_collision(&mut self.player, &mut self.environment);

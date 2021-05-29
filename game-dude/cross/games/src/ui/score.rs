@@ -1,5 +1,6 @@
-use super::ui::numbers;
 use stm32l4p5_hal::dma2d::Dma2d;
+
+use super::numbers;
 
 type ImagePtr = u32;
 
@@ -29,7 +30,7 @@ impl Score {
         let mut x: u32 = 0;
         let y: u32 = center_y - numbers::NUMBER_HEIGHT / 2;
 
-        for digit in self.digits.iter() {
+        for digit in &self.digits {
             if let Some(image_address) = digit {
                 dma2d.draw_rgb8_image(
                     *image_address,

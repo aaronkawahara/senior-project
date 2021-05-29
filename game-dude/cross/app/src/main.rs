@@ -4,7 +4,6 @@
 use board::{self, Board};
 use cortex_m_rt as rt;
 use defmt_rtt as _;
-use games;
 use lcd::Lcd;
 use panic_probe as _;
 use rt::entry;

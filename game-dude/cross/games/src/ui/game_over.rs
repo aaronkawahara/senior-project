@@ -15,6 +15,8 @@ pub(crate) fn handle_game_over(
     game: Games,
     score: u32,
 ) -> States {
+    const CENTER_Y: u32 = 182;
+    
     dma2d.draw_rgb8_image(
         images::GameOverImage.data_address(),
         0,
@@ -25,7 +27,6 @@ pub(crate) fn handle_game_over(
 
     let mut score_digits = Score::default();
     score_digits.parse_score(score);
-    const CENTER_Y: u32 = 182;
     score_digits.display_score(dma2d, lcd::SCREEN_WIDTH_U32 / 2, CENTER_Y);
 
     let mut selection: PlayAgainSelected = PlayAgainSelected::Yes;

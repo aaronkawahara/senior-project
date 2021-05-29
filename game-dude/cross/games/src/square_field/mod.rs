@@ -16,7 +16,7 @@ const QUARTER_WIDTH: u16 = 120;
 pub fn play(input: &mut Inputs, dma2d: &mut Dma2d, draw_and_wait: fn() -> ()) -> u32 {
     let mut square_field = SquareField::new();
     let mut game_over = false;
-    rng::init_rng();
+    rng::init();
 
     while !game_over {
         game_over = square_field.process_frame(input, dma2d);
@@ -57,17 +57,17 @@ impl SquareField {
     pub fn new() -> Self {
         let square_hit_box = BoundingBox::new(
             Position::new(0, 0),
-            Position::new(SquareImage::WIDTH as i32, SquareImage::HEIGHT as i32),
+            Position::new(i32::from(SquareImage::WIDTH), i32::from(SquareImage::HEIGHT)),
         );
 
-        let px: i32 = lcd::SCREEN_WIDTH_I32 / 2 - (PlayerImage::WIDTH / 2) as i32;
-        let py: i32 = lcd::SCREEN_HEIGHT_I32 - 10 - PlayerImage::HEIGHT as i32;
+        let px: i32 = lcd::SCREEN_WIDTH_I32 / 2 - i32::from(PlayerImage::WIDTH) / 2;
+        let py: i32 = lcd::SCREEN_HEIGHT_I32 - 10 - i32::from(PlayerImage::HEIGHT);
 
         let player_hit_box = BoundingBox::new(
             Position::new(px, py),
             Position::new(
-                px + PlayerImage::WIDTH as i32,
-                py + PlayerImage::HEIGHT as i32,
+                px + i32::from(PlayerImage::WIDTH),
+                py + i32::from(PlayerImage::HEIGHT),
             ),
         );
 
@@ -90,10 +90,9 @@ impl SquareField {
         let mut game_over = false;
 
         let vx: i32 = match (input.left_pressed(), input.right_pressed()) {
-            (false, false) => 0,
+            (false, false) | (true, true) => 0,
             (false, true) => -Player::MOVEMENT_SPEED,
             (true, false) => Player::MOVEMENT_SPEED,
-            (true, true) => 0,
         };
 
         let vy: i32 = self.zone.speed();
@@ -106,7 +105,7 @@ impl SquareField {
             PlayerImage::HEIGHT,
         );
 
-        for square in self.squares.iter_mut() {
+        for square in &mut self.squares {
             if square.hit_box.collides_with(&self.player.hit_box) {
                 game_over = true;
                 break;
@@ -186,7 +185,7 @@ impl SquareField {
                 .translate_to(&Position::new(Self::X_MIN, square.hit_box.top_left.y));
         } else if square.hit_box.bottom_right.x < Self::X_MIN {
             square.hit_box.translate_to(&Position::new(
-                Self::X_MAX - SquareImage::WIDTH as i32,
+                Self::X_MAX - i32::from(SquareImage::WIDTH),
                 square.hit_box.top_left.y,
             ));
         }

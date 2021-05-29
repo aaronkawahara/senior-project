@@ -17,15 +17,15 @@ pub(crate) fn get_game_selection(
     );
 
     let mut selection: Games = Games::SquareField;
-    draw_game_selection(dma2d, &selection);
+    draw_game_selection(dma2d, selection);
 
     while !input.right_debounced() {
         if input.down_debounced() {
             selection = selection.next();
-            draw_game_selection(dma2d, &selection);
+            draw_game_selection(dma2d, selection);
         } else if input.up_debounced() {
             selection = selection.previous();
-            draw_game_selection(dma2d, &selection);
+            draw_game_selection(dma2d, selection);
         }
 
         draw_and_wait();
@@ -34,11 +34,13 @@ pub(crate) fn get_game_selection(
     selection
 }
 
-fn draw_game_selection(dma2d: &mut Dma2d, selection: &Games) {
+fn draw_game_selection(dma2d: &mut Dma2d, selection: Games) {
     const DY: u32 = lcd::SCREEN_HEIGHT_U32 / (core::mem::variant_count::<Games>() + 1) as u32;
     const SQUARE_FIELD_X: u32 =
         (lcd::SCREEN_WIDTH_U16 - images::SquareFieldSelectedImage::WIDTH) as u32 / 2;
     const SQUARE_FIELD_Y: u32 = DY - images::SquareFieldSelectedImage::HEIGHT as u32 / 2;
+    const ONLY_ONE_LEVEL_X: u32 = (lcd::SCREEN_WIDTH_U16 - images::OnlyOneLevelSelectedImage::WIDTH) as u32 / 2;
+    const ONLY_ONE_LEVEL_Y: u32 = 2 * DY - images::OnlyOneLevelSelectedImage::HEIGHT as u32 / 2; 
 
     dma2d.draw_rgb8_image(
         if let Games::SquareField = selection {
@@ -51,10 +53,6 @@ fn draw_game_selection(dma2d: &mut Dma2d, selection: &Games) {
         images::SquareFieldSelectedImage::WIDTH,
         images::SquareFieldSelectedImage::HEIGHT,
     );
-
-
-    const ONLY_ONE_LEVEL_X: u32 = (lcd::SCREEN_WIDTH_U16 - images::OnlyOneLevelSelectedImage::WIDTH) as u32 / 2;
-    const ONLY_ONE_LEVEL_Y: u32 = 2 * DY - images::OnlyOneLevelSelectedImage::HEIGHT as u32 / 2; 
 
     dma2d.draw_rgb8_image(
         if let Games::OnlyOneLevel = selection {

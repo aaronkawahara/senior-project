@@ -19,10 +19,9 @@ impl Zones {
 
     pub fn reposition_square(&mut self, square: &mut Square) {
         match self {
-            Zones::Empty(_) => {}
+            Zones::Empty(_) | Zones::End(_) => {}
             Zones::Transition(z) => z.reposition_square(square),
             Zones::Random(z) => z.reposition_square(square),
-            Zones::End(_) => {}
         }
     }
 
@@ -32,7 +31,7 @@ impl Zones {
             Zones::Transition(z) if z.passed_zone(score) => Some(z.next_zone(squares)),
             Zones::Random(z) if z.passed_zone(score) => Some(z.next_zone(squares)),
             Zones::End(_) => None,
-            _zone => Some(_zone),
+            zone => Some(zone),
         }
     }
 
@@ -161,16 +160,16 @@ impl ZoneBehavior for TransitionZone {
     fn reposition_square(&mut self, square: &mut Square) {
         let x: i32 = match self.curr_square {
             0 => {
-                Self::DX * (Self::CORRAL_ROWS - self.rows_passed).clamp(0, SquareField::ROWS as i32)
+                Self::DX * (Self::CORRAL_ROWS - self.rows_passed).clamp(0, i32::from(SquareField::ROWS))
             }
             1 => {
                 -Self::DX
-                    * (Self::CORRAL_ROWS - self.rows_passed).clamp(0, SquareField::ROWS as i32)
+                    * (Self::CORRAL_ROWS - self.rows_passed).clamp(0, i32::from(SquareField::ROWS))
             }
             _ => 0,
         };
 
-        let y: i32 = -((SquareField::ROW_SPACE * SquareField::ROWS) as i32);
+        let y: i32 = -i32::from(SquareField::ROW_SPACE * SquareField::ROWS);
 
         square.hit_box.translate(&Position::new(x, y));
 
@@ -194,9 +193,9 @@ impl ZoneBehavior for TransitionZone {
     }
 
     fn setup(self, squares: &mut Field) -> Self {
-        for row in 0..(SquareField::ROWS as i32) {
+        for row in 0..i32::from(SquareField::ROWS) {
             let y: i32 = lcd::SCREEN_HEIGHT_I32
-                - (SquareImage::HEIGHT as i32 + (SquareField::ROW_SPACE as i32) * row);
+                - (i32::from(SquareImage::HEIGHT) + i32::from(SquareField::ROW_SPACE) * row);
 
             for square in 0..SquareField::SQUARES_PER_ROW {
                 let x: i32 = match square {
@@ -236,7 +235,7 @@ impl ZoneBehavior for RandomizedZone {
     fn reposition_square(&mut self, square: &mut Square) {
         let new_position = Position::new(
             rng::gen_range(SquareField::X_MIN..SquareField::X_MAX),
-            square.hit_box.top_left.y - (SquareField::ROW_SPACE * SquareField::ROWS) as i32,
+            square.hit_box.top_left.y - i32::from(SquareField::ROW_SPACE * SquareField::ROWS),
         );
 
         square.hit_box.translate_to(&new_position);
@@ -266,8 +265,8 @@ impl ZoneBehavior for RandomizedZone {
     }
 
     fn setup(self, squares: &mut Field) -> Self {
-        for row in 0..(SquareField::ROWS as i32) {
-            let y: i32 = -(SquareImage::HEIGHT as i32 + (SquareField::ROW_SPACE as i32) * row);
+        for row in 0..i32::from(SquareField::ROWS) {
+            let y: i32 = -(i32::from(SquareImage::HEIGHT) + i32::from(SquareField::ROW_SPACE) * row);
 
             for square in 0..SquareField::SQUARES_PER_ROW {
                 let x: i32 = rng::gen_range(SquareField::X_MIN..SquareField::X_MAX);

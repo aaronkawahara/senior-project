@@ -9,7 +9,7 @@ const RNG_SEED: [u8; 16] = [
 
 pub static mut RNG: Option<SmallRng> = None;
 
-pub fn init_rng() {
+pub fn init() {
     unsafe {
         if RNG.is_none() {
             RNG = Some(SmallRng::from_seed(RNG_SEED))
