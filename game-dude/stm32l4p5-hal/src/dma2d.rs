@@ -53,6 +53,8 @@ impl Dma2d {
     pub fn fill_rgb8_rect(&self, rgb: u8, x: u16, y: u16, width: u16, height: u16) {
         let repeat_rgb: u32 = u32::from(rgb) << 8 | u32::from(rgb);
         let width = width >> 1;
+        let x = u32::from(x);
+        let y = u32::from(y);
 
         while self.registers.cr.read().start().bit_is_set() {}
 
@@ -63,7 +65,7 @@ impl Dma2d {
             .opfccr
             .modify(|_, w| w.cm().variant(dma2d::opfccr::CM_A::ARGB4444));
         self.registers.omar.modify(|_, w| unsafe {
-            w.bits(self.buffer_address.unwrap() + u32::from(x + y * self.display_width.unwrap()))
+            w.bits(self.buffer_address.unwrap() + x + y * u32::from(self.display_width.unwrap()))
         });
         self.registers
             .oor
