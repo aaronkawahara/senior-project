@@ -6,25 +6,35 @@ use crate::collisions::{BoundingBox, Collideable};
 use crate::rng;
 
 use environment::Environment;
-use levels::*;
+use levels::Level;
 use player::Player;
 
 use board::input::Inputs;
 use stm32l4p5_hal::dma2d::Dma2d;
 
-pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, draw_and_wait: fn() -> ()) -> u32 {
+pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, wait_for_vsync: fn() -> ()) -> u32 {
     rng::init();
-    let mut level: usize = 1;
+    let mut level: usize = 5;
 
-    // while level <= levels::LAST_LEVEL {
-    //     level = match level {
-    //         1 => { OnlyLevel::new(dma2d, LevelOne).play(input, draw_and_wait); 2 }
-    //         2 => { OnlyLevel::new(dma2d, LevelTwo).play(input, draw_and_wait); 3 }
-    //         _ => panic!("current level exceeds intended limit")
-    //     };
-    // }
+    while level <= levels::LAST_LEVEL {
+        match level {
+            1 => OnlyLevel::new(dma2d, levels::Normal).play(input, wait_for_vsync),
+            2 => OnlyLevel::new(dma2d, levels::InvertedControls).play(input, wait_for_vsync),
+            3 => OnlyLevel::new(dma2d, levels::OpenGate).play(input, wait_for_vsync),
+            4 => OnlyLevel::new(dma2d, levels::Floaty).play(input, wait_for_vsync),
+            5 => OnlyLevel::new(dma2d, levels::BouncyWalls).play(input, wait_for_vsync),
+            6 => OnlyLevel::new(dma2d, levels::BouncySpikes).play(input, wait_for_vsync),
+            7 => OnlyLevel::new(dma2d, levels::HeadWind).play(input, wait_for_vsync),
+            8 => OnlyLevel::new(dma2d, levels::NoRegrets).play(input, wait_for_vsync),
+            9 => OnlyLevel::new(dma2d, levels::NoHops).play(input, wait_for_vsync),
+            10 => OnlyLevel::new(dma2d, levels::OneShot::default()).play(input, wait_for_vsync),
+            11 => OnlyLevel::new(dma2d, levels::TryAgain::default()).play(input, wait_for_vsync),
+            12 => OnlyLevel::new(dma2d, levels::DoYouRemember).play(input, wait_for_vsync),
+            _ => panic!("current level exceeds intended limit"),
+        }
 
-    OnlyLevel::new(dma2d, BouncyWalls).play(input, draw_and_wait);
+        level += 1;
+    }
 
     dma2d.fill_background(
         0x00_00_00_00,
@@ -55,9 +65,9 @@ impl<'d, L: Level> OnlyLevel<'d, L> {
         }
     }
 
-    pub fn play(&mut self, input: &mut Inputs, draw_and_wait: fn() -> ()) {
+    pub fn play(&mut self, input: &mut Inputs, wait_for_vsync: fn() -> ()) {
         while !self.process_frame(input) {
-            draw_and_wait();
+            wait_for_vsync();
         }
     }
 

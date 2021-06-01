@@ -18,7 +18,6 @@ pub const VSYNC_HEIGHT: u16 = 1;
 
 use core::{convert::TryInto, i32, u16, u32, usize};
 
-use core::convert::Infallible;
 pub use embedded_graphics::{
     drawable::Pixel,
     egcircle, egline, egrectangle, egtext, egtriangle,
@@ -70,60 +69,10 @@ impl Lcd {
     }
 }
 
-impl DrawTarget<RGB8> for Lcd {
-    type Error = core::convert::Infallible;
-
-    fn draw_pixel(&mut self, pixel: Pixel<RGB8>) -> Result<(), Self::Error> {
-        let Pixel(Point { x, y }, color) = pixel;
-
-        if 0 <= x && x < 479 && 0 <= y && y < 271 {
-            let x_: usize = x.try_into().unwrap();
-            let y_: usize = y.try_into().unwrap();
-
-            let index: usize = x_ + y_ * 480;
-            self.frame_buffer[index] = color.rgb();
-        }
-
-        Ok(())
-    }
-
-    fn size(&self) -> Size {
-        Size::new(SCREEN_WIDTH_U32, SCREEN_HEIGHT_U32)
-    }
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-pub struct RGB8(RawU8);
-
-impl RGB8 {
+pub mod colors {
     pub const RED: u8 = 0b11100000;
     pub const GREEN: u8 = 0b00011100;
     pub const BLUE: u8 = 0b00000011;
     pub const BLACK: u8 = 0b00000000;
     pub const WHITE: u8 = 0b11111111;
-
-    pub fn new(rgb: u8) -> Self {
-        Self(RawU8::new(rgb))
-    }
-
-    pub fn rgb(&self) -> u8 {
-        self.0.into_inner()
-    }
-}
-
-impl PixelColor for RGB8 {
-    type Raw = RawU8;
-}
-
-impl From<RawU8> for RGB8 {
-    fn from(data: RawU8) -> Self {
-        Self(data)
-    }
-}
-
-pub fn handle_draw(result: Result<(), Infallible>) {
-    match result {
-        Ok(()) => (),
-        Err(_e) => panic!("error drawing shape"),
-    }
 }

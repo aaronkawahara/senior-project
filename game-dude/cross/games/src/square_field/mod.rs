@@ -13,14 +13,14 @@ use zones::Zones;
 const BACKGROUND_COLOR: u32 = 0xff_ff_ff_ff;
 const QUARTER_WIDTH: u16 = 120;
 
-pub fn play(input: &mut Inputs, dma2d: &mut Dma2d, draw_and_wait: fn() -> ()) -> u32 {
+pub fn play(input: &mut Inputs, dma2d: &Dma2d, wait_for_vsync: fn() -> ()) -> u32 {
     let mut square_field = SquareField::new();
     let mut game_over = false;
     rng::init();
 
     while !game_over {
         game_over = square_field.process_frame(input, dma2d);
-        draw_and_wait();
+        wait_for_vsync();
     }
 
     dma2d.fill_background(BACKGROUND_COLOR, QUARTER_WIDTH, lcd::SCREEN_HEIGHT_U16);
@@ -84,7 +84,7 @@ impl SquareField {
         }
     }
 
-    pub fn process_frame(&mut self, input: &mut Inputs, dma2d: &mut Dma2d) -> bool {
+    pub fn process_frame(&mut self, input: &mut Inputs, dma2d: &Dma2d) -> bool {
         dma2d.fill_background(BACKGROUND_COLOR, QUARTER_WIDTH, lcd::SCREEN_HEIGHT_U16);
 
         let mut game_over = false;

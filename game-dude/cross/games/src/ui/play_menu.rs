@@ -5,10 +5,12 @@ use crate::Games;
 use board::input::Inputs;
 use stm32l4p5_hal::dma2d::Dma2d;
 
+use super::DiscreteSelection;
+
 pub(crate) fn get_game_selection(
     input: &mut Inputs,
-    dma2d: &mut Dma2d,
-    draw_and_wait: fn() -> (),
+    dma2d: &Dma2d,
+    wait_for_vsync: fn() -> (),
 ) -> Games {
     dma2d.fill_background(
         0x00_00_00_00,
@@ -28,13 +30,13 @@ pub(crate) fn get_game_selection(
             draw_game_selection(dma2d, selection);
         }
 
-        draw_and_wait();
+        wait_for_vsync();
     }
 
     selection
 }
 
-fn draw_game_selection(dma2d: &mut Dma2d, selection: Games) {
+fn draw_game_selection(dma2d: &Dma2d, selection: Games) {
     const DY: u32 = lcd::SCREEN_HEIGHT_U32 / (core::mem::variant_count::<Games>() + 1) as u32;
     const SQUARE_FIELD_X: u32 =
         (lcd::SCREEN_WIDTH_U16 - images::SquareFieldSelectedImage::WIDTH) as u32 / 2;
@@ -65,11 +67,6 @@ fn draw_game_selection(dma2d: &mut Dma2d, selection: Games) {
         images::OnlyOneLevelSelectedImage::WIDTH,
         images::OnlyOneLevelSelectedImage::HEIGHT,
     );
-}
-
-trait DiscreteSelection {
-    fn next(self) -> Self;
-    fn previous(self) -> Self;
 }
 
 impl DiscreteSelection for Games {

@@ -7,7 +7,7 @@ use super::{
 
 use board::input::Inputs;
 
-pub(super) const LAST_LEVEL: usize = 4;
+pub(super) const LAST_LEVEL: usize = 12;
 
 pub(super) trait Level {
     fn init_environment(&self, environment: &mut Environment) {
@@ -218,6 +218,7 @@ pub(super) struct LevelEleven;
 // gate starts hidden
 // must alternate left right inputs to progress along predetermined path to finish pipe
 
+#[derive(Default)]
 pub(super) struct OneShot {
     used_jump: bool,
 }
@@ -236,6 +237,7 @@ impl Level for OneShot {
     }
 }
 
+#[derive(Default)]
 pub(super) struct TryAgain {
     button_hits: usize,
 }

@@ -18,7 +18,7 @@ fn main() -> ! {
     board.init_dma2d(lcd.first_element());
     let input = board.take_inputs();
     let dma2d = board.take_dma2d();
-    let draw_and_wait = board.ltdc().draw_and_wait();
+    let wait_for_vsync = board.ltdc().wait_for_vsync();
 
-    games::start_game_machine(input, dma2d, draw_and_wait);
+    games::start_game_machine(input, dma2d, wait_for_vsync);
 }
