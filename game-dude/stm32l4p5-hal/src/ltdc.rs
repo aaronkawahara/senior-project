@@ -163,7 +163,7 @@ impl Ltdc {
 
     }
 
-    pub fn draw_and_wait(&self) -> fn () -> () {
+    pub fn wait_for_vsync(&self) -> fn () -> () {
         move || {
             let srcr = unsafe { &(*LTDC::ptr()).srcr };
             let cdsr = unsafe { &(*LTDC::ptr()).cdsr };
