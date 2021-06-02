@@ -33,6 +33,7 @@ pub(crate) fn get_game_selection(
         wait_for_vsync();
     }
 
+    while input.right_pressed() {}
     selection
 }
 
