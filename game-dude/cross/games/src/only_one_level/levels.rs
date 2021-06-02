@@ -1,4 +1,4 @@
-use crate::collisions::Collideable;
+use crate::{collisions::Collideable, common::Velocity};
 
 use super::{
     environment::{self, Environment},
@@ -128,42 +128,6 @@ impl Level for Floaty {
     }
 }
 
-pub(super) struct BouncyWalls;
-impl Level for BouncyWalls {
-    fn init_player(&self, player: &mut Player) {
-        const BOUNCE_FACTOR_TENTHS: i32 = 8;
-
-        let new_physics = PlayerPhysics {
-            bounce_factor_tenths: BOUNCE_FACTOR_TENTHS,
-            ..PlayerPhysics::default()
-        };
-
-        player.change_physics(new_physics);
-        player.respawn();
-    }
-}
-
-pub(super) struct BouncySpikes;
-impl Level for BouncySpikes {
-    fn calculate_player_vy(&mut self, _input: &mut Inputs, player: &Player) -> i32 {
-        if player.on_ground {
-            0
-        } else {
-            player.calculate_fall_speed()
-        }
-    }
-
-    fn handle_spike_collision(&mut self, player: &mut Player, _environment: &mut Environment) {
-        const BOUNCE_SPEED: i32 = -16;
-        player.velocity.x = 0;
-        player.velocity.y = BOUNCE_SPEED;
-    }
-}
-
-pub(super) struct DeadlyStripes;
-// stripes throughout level
-// landing on the wrong stripe color kills you
-
 pub(super) struct HeadWind;
 impl Level for HeadWind {
     fn calculate_player_vx(&self, input: &mut Inputs, player: &Player) -> i32 {
@@ -275,16 +239,60 @@ impl Level for TryAgain {
     }
 }
 
-pub(super) struct LevelFourteen;
-// normal everything
+#[derive(Default)]
+pub(super) struct Choppy {
+    frames: u32,
+    velocity_y: i32,
+    updates_in_air: i32,
+}
 
-pub(super) struct LevelFifteen;
-// ground blocks fall from under after landing
-// button does not open gate
-// must go from above to get to finish
+impl Choppy {
+    const FRAMES_PER_UPDATE: u32 = 15;
+}
 
-pub(super) struct LevelSixteen;
-// game logic updates 10 times as slow
+impl Level for Choppy {
+    fn calculate_player_vx(&self, input: &mut Inputs, player: &Player) -> i32 {
+        if self.frames == Self::FRAMES_PER_UPDATE {
+            let player_physics = player.physics();
+
+            match (input.left_pressed(), input.right_pressed()) {
+                (true, false) if player.on_ground => -player_physics.ground_speed,
+                (false, true) if player.on_ground => player_physics.ground_speed,
+                (true, false) if !player.on_ground => -player_physics.air_speed,
+                (false, true) if !player.on_ground => player_physics.air_speed,
+                _ => 0,
+            }
+        } else {
+            0
+        }
+    }
+
+    fn calculate_player_vy(&mut self, input: &mut Inputs, player: &Player) -> i32 {
+        if self.frames == Self::FRAMES_PER_UPDATE {
+            self.frames = 0;
+            let player_physics = player.physics();
+
+            self.velocity_y = if !player.on_ground {
+                core::cmp::min(
+                    self.velocity_y
+                        + (player_physics.gravity * self.updates_in_air)
+                            / player_physics.frames_to_apex,
+                    player_physics.max_falling_velocity,
+                )
+            } else if input.up_pressed() {
+                player_physics.jump_speed
+            } else {
+                0
+            };
+
+            self.updates_in_air = if player.on_ground { 0 } else { self.updates_in_air + 1 };
+            self.velocity_y
+        } else {
+            self.frames += 1;
+            0
+        } 
+    }
+}
 
 pub(super) struct DoYouRemember;
 impl Level for DoYouRemember {

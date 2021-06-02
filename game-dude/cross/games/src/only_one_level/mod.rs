@@ -13,9 +13,9 @@ use board::input::Inputs;
 use stm32l4p5_hal::dma2d::Dma2d;
 
 pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, wait_for_vsync: fn() -> ()) -> u32 {
-    const LAST_LEVEL: usize = 13;
+    const LAST_LEVEL: usize = 12;
     rng::init();
-    let mut level: usize = 13;
+    let mut level: usize = 7;
     let mut score: u32 = 0;
 
     while level <= LAST_LEVEL {
@@ -24,15 +24,15 @@ pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, wait_for_vsync: fn() -> ()
             2 => OnlyLevel::new(dma2d, levels::InvertedControls).play(input, wait_for_vsync),
             3 => OnlyLevel::new(dma2d, levels::OpenGate).play(input, wait_for_vsync),
             4 => OnlyLevel::new(dma2d, levels::Floaty).play(input, wait_for_vsync),
-            5 => OnlyLevel::new(dma2d, levels::BouncyWalls).play(input, wait_for_vsync), // not working
-            6 => OnlyLevel::new(dma2d, levels::BouncySpikes).play(input, wait_for_vsync), // not working - not enough bounce + only works on ground spikes?
-            7 => OnlyLevel::new(dma2d, levels::HeadWind).play(input, wait_for_vsync),
-            8 => OnlyLevel::new(dma2d, levels::NoRegrets).play(input, wait_for_vsync),
-            9 => OnlyLevel::new(dma2d, levels::NoHops).play(input, wait_for_vsync),
-            10 => OnlyLevel::new(dma2d, levels::OneShot::default()).play(input, wait_for_vsync),
-            11 => OnlyLevel::new(dma2d, levels::TryAgain::default()).play(input, wait_for_vsync),
-            12 => OnlyLevel::new(dma2d, levels::DoYouRemember).play(input, wait_for_vsync),
-            13 => OnlyLevel::new(dma2d, levels::Sacrifice).play(input, wait_for_vsync),
+            5 => OnlyLevel::new(dma2d, levels::HeadWind).play(input, wait_for_vsync),
+            6 => OnlyLevel::new(dma2d, levels::NoRegrets).play(input, wait_for_vsync),
+            7 => OnlyLevel::new(dma2d, levels::Choppy::default()).play(input, wait_for_vsync),
+            8 => OnlyLevel::new(dma2d, levels::NoHops).play(input, wait_for_vsync),
+            9 => OnlyLevel::new(dma2d, levels::OneShot::default()).play(input, wait_for_vsync),
+            10 => OnlyLevel::new(dma2d, levels::TryAgain::default()).play(input, wait_for_vsync),
+            11 => OnlyLevel::new(dma2d, levels::DoYouRemember).play(input, wait_for_vsync),
+            12 => OnlyLevel::new(dma2d, levels::Sacrifice).play(input, wait_for_vsync),
+            LAST_LEVEL => OnlyLevel::new(dma2d, levels::Normal).play(input, wait_for_vsync),
             _ => panic!("current level exceeds intended limit"),
         };
 
