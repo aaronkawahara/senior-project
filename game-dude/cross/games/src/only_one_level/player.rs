@@ -66,21 +66,31 @@ impl<'a> Player<'a> {
             ));
             self.velocity.x = 0;
         } else if self.velocity.y > 0 {
-            self.velocity.y = -(self.velocity.y * self.physics.bounce_factor_tenths) / 10;
-            let distance_to_ground = other_hit_box.top_left.y - old_hit_box.bottom_right.y;
-            let bounce_height = distance_to_ground + self.velocity.y;
+            // self.velocity.y = -(self.velocity.y * self.physics.bounce_factor_tenths) / 10;
+            // let distance_to_ground = other_hit_box.top_left.y - old_hit_box.bottom_right.y;
+            // let bounce_height = distance_to_ground + self.velocity.y;
+            // collision_location.translate(&Position::new(
+            //     0,
+            //     other_hit_box.top_left.y - collision_location.bottom_right.y + bounce_height,
+            // ));
             collision_location.translate(&Position::new(
                 0,
-                other_hit_box.top_left.y - collision_location.bottom_right.y + bounce_height,
+                other_hit_box.top_left.y - collision_location.bottom_right.y,
             ));
+            self.velocity.y = 0;
         } else if self.velocity.y < 0 {
-            self.velocity.y = -(self.velocity.y * self.physics.bounce_factor_tenths) / 10;
-            let distance_to_ceiling = other_hit_box.bottom_right.y - old_hit_box.top_left.y;
-            let bounce_depth = distance_to_ceiling + self.velocity.y;
+            // self.velocity.y = -(self.velocity.y * self.physics.bounce_factor_tenths) / 10;
+            // let distance_to_ceiling = other_hit_box.bottom_right.y - old_hit_box.top_left.y;
+            // let bounce_depth = distance_to_ceiling + self.velocity.y;
+            // collision_location.translate(&Position::new(
+            //     0,
+            //     other_hit_box.bottom_right.y - collision_location.top_left.y + bounce_depth,
+            // ));
             collision_location.translate(&Position::new(
                 0,
-                other_hit_box.bottom_right.y - collision_location.top_left.y + bounce_depth,
+                other_hit_box.bottom_right.y - collision_location.top_left.y,
             ));
+            self.velocity.y = 0;
         }
 
         self.hit_box = collision_location;
