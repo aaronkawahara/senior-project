@@ -1,9 +1,16 @@
 const HIGH_SCORES_SAVED: usize = 3;
 
-pub static mut SQUARE_FIELD_HIGH_SCORES: HighScoreTable<u32> =
+// #[used]
+// #[link_section = ".square_field_high_score_table"]
+pub static mut SQUARE_FIELD_HIGH_SCORES: HighScoreTable<u32> = 
     HighScoreTable::<u32>::new(SortOrder::Descending);
-pub static mut ONLY_LEVEL_HIGH_SCORES: HighScoreTable<u32> =
+// pub static mut SQUARE_FIELD_HIGH_SCORES: *mut HighScoreTable<u32> = 0x80ffc00_u32 as *mut HighScoreTable<u32>;
+
+// #[used]
+// #[link_section = ".only_level_high_score_table"]
+pub static mut ONLY_LEVEL_HIGH_SCORES: HighScoreTable<u32> = 
     HighScoreTable::<u32>::new(SortOrder::Ascending);
+// pub static mut ONLY_LEVEL_HIGH_SCORES: *mut HighScoreTable<u32> = 0x80ffc40_u32 as *mut HighScoreTable<u32>;
 
 pub struct HighScoreTable<S: ScoreConstraints> {
     entries: [Entry<S>; HIGH_SCORES_SAVED],
@@ -16,6 +23,17 @@ impl<S: ScoreConstraints> HighScoreTable<S> {
             entries: [Entry::<S>::default(); HIGH_SCORES_SAVED],
             sort_by,
         }
+    }
+
+    pub fn is_initialized(&self) -> bool {
+        self.entries[0].initials[0].is_ascii_uppercase() &&
+        self.entries[0].initials[1].is_ascii_uppercase() &&
+        self.entries[0].initials[2].is_ascii_uppercase()
+    }
+
+    pub fn initialize(&mut self, sort_by: SortOrder) {
+        self.entries = [Entry::<S>::default(); HIGH_SCORES_SAVED];
+        self.sort_by = sort_by;
     }
 
     pub fn is_new_high_score(&self, new_score: S) -> bool {
@@ -41,6 +59,10 @@ impl<S: ScoreConstraints> HighScoreTable<S> {
             next = temp;
         }
     }
+
+    pub fn entries(&self) -> &[Entry<S>; HIGH_SCORES_SAVED] {
+        &self.entries
+    }
 }
 
 pub enum SortOrder {
@@ -65,7 +87,8 @@ impl SortOrder {
 }
 
 pub trait ScoreConstraints: core::cmp::Ord + ConstDefault + Clone + Copy {}
-pub type Initials = [char; 3];
+pub const NUM_INITIALS: usize = 3;
+pub type Initials = [char; NUM_INITIALS];
 
 #[derive(Clone, Copy)]
 pub struct Entry<S: ScoreConstraints> {
@@ -85,11 +108,11 @@ impl<S: ScoreConstraints> Entry<S> {
         Entry { initials, score }
     }
 
-    fn score(&self) -> S {
+    pub fn score(&self) -> S {
         self.score
     }
 
-    fn initials(&self) -> &Initials {
+    pub fn initials(&self) -> &Initials {
         &self.initials
     }
 }

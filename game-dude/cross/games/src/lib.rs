@@ -4,11 +4,11 @@
 
 mod collisions;
 mod common;
-mod high_scores;
+pub mod high_scores;
 mod images;
+mod only_one_level;
 mod rng;
 mod square_field;
-mod only_one_level;
 mod ui;
 
 use crate::ui::{game_over, play_menu};
@@ -16,8 +16,18 @@ use crate::ui::{game_over, play_menu};
 use board::input::Inputs;
 use stm32l4p5_hal::dma2d::Dma2d;
 
-pub fn start_game_machine(mut input: Inputs, mut dma2d: Dma2d, wait_for_vsync: fn() -> ()) -> ! {
+pub fn start_game_machine(mut input: Inputs, dma2d: Dma2d, wait_for_vsync: fn() -> ()) -> ! {
     let mut state: States = States::PlayMenu;
+
+    unsafe {
+        if !high_scores::SQUARE_FIELD_HIGH_SCORES.is_initialized() {
+            high_scores::SQUARE_FIELD_HIGH_SCORES.initialize(high_scores::SortOrder::Descending);
+        }
+
+        if !high_scores::ONLY_LEVEL_HIGH_SCORES.is_initialized() {
+            high_scores::ONLY_LEVEL_HIGH_SCORES.initialize(high_scores::SortOrder::Ascending);
+        }
+    }
 
     loop {
         state = match state {
