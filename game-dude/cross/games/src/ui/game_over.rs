@@ -1,3 +1,6 @@
+use crate::high_scores::HighScoreTable;
+use crate::high_scores::ONLY_LEVEL_HIGH_SCORES;
+use crate::high_scores::SQUARE_FIELD_HIGH_SCORES;
 use crate::ui::high_score_entry;
 use crate::Games;
 use crate::States;
@@ -19,7 +22,7 @@ pub(crate) fn handle_game_over(
         high_score_entry::handle_high_score(game, score, dma2d, input, wait_for_vsync);
     }
 
-    draw_game_over(dma2d, score);
+    draw_game_over(dma2d, game, score);
 
     let mut selection: PlayAgainSelected = PlayAgainSelected::Yes;
     draw_play_again_selection(dma2d, selection);
@@ -42,7 +45,10 @@ pub(crate) fn handle_game_over(
     }
 }
 
-fn draw_game_over(dma2d: &Dma2d, score: u32) {
+const SCORE_RIGHT_X: u16 = lcd::SCREEN_WIDTH_U16 - letters::LETTER_WIDTH;
+const LINE_SPACING: u16 = (letters::LETTER_HEIGHT * 3) / 2;
+
+fn draw_game_over(dma2d: &Dma2d, game: Games, score: u32) {
     dma2d.fill_background(
         0x00_00_00_00,
         lcd::SCREEN_WIDTH_U16 / 4,
@@ -51,14 +57,45 @@ fn draw_game_over(dma2d: &Dma2d, score: u32) {
 
     GAME_OVER.draw(dma2d);
     SCORE.draw(dma2d);
+    HIGH_SCORES.draw(dma2d);
 
     let mut score_digits = Score::default();
     score_digits.parse_score(score);
-    score_digits.display_score(
-        dma2d,
-        lcd::SCREEN_WIDTH_U16 - letters::LETTER_WIDTH,
-        SCORE.y,
-    );
+    score_digits.display_score(dma2d, SCORE_RIGHT_X, SCORE.y);
+
+    draw_high_scores(dma2d, game)
+}
+
+fn draw_high_scores(dma2d: &Dma2d, game: Games) {
+    let score_table: &HighScoreTable<u32> = match game {
+        Games::SquareField => unsafe { &SQUARE_FIELD_HIGH_SCORES },
+        Games::OnlyOneLevel => unsafe { &ONLY_LEVEL_HIGH_SCORES },
+    };
+
+    let mut y: u16 = HIGH_SCORES.y + LINE_SPACING;
+    let mut initials_buf: [u8; 4] = [0; 4];
+
+    for entry in score_table.entries() {
+        let mut x: u16 = letters::LETTER_WIDTH;
+
+        for initial in entry.initials() {
+            let initial_text_box: TextBox = TextBox {
+                text: initial.encode_utf8(&mut initials_buf),
+                x,
+                y,
+                border: false,
+            };
+
+            initial_text_box.draw(dma2d);
+            x += letters::LETTER_WIDTH;
+        }
+
+        let mut score_digits = Score::default();
+        score_digits.parse_score(entry.score());
+        score_digits.display_score(dma2d, SCORE_RIGHT_X, y);
+
+        y += LINE_SPACING;
+    }
 }
 
 fn draw_play_again_selection(dma2d: &Dma2d, selection: PlayAgainSelected) {
@@ -110,7 +147,15 @@ const SCORE_STR: &str = "SCORE";
 const SCORE: TextBox = TextBox {
     text: SCORE_STR,
     x: letters::LETTER_WIDTH,
-    y: GAME_OVER.y + (letters::LETTER_HEIGHT * 3) / 2,
+    y: GAME_OVER.y + LINE_SPACING,
+    border: false,
+};
+
+const HIGH_SCORES_STR: &str = "HIGH SCORES";
+const HIGH_SCORES: TextBox = TextBox {
+    text: HIGH_SCORES_STR,
+    x: letters::center_text_box(HIGH_SCORES_STR),
+    y: SCORE.y + LINE_SPACING,
     border: false,
 };
 

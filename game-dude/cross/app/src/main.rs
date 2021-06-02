@@ -19,6 +19,6 @@ fn main() -> ! {
     let input = board.take_inputs();
     let dma2d = board.take_dma2d();
     let wait_for_vsync = board.ltdc().wait_for_vsync();
-
+    
     games::start_game_machine(input, dma2d, wait_for_vsync);
 }
