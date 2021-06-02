@@ -233,7 +233,7 @@ pub(super) mod letters {
                 images::SpaceImage::WIDTH,
                 images::SpaceImage::HEIGHT,
             ),
-            _ => panic!("no alphabet letter provided"),
+            c => panic!("no alphabet letter provided: {}", c),
         };
 
         dma2d.draw_rgb8_image(image_address, x, y, width, height);
