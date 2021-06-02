@@ -1,4 +1,4 @@
-use crate::{collisions::Collideable, common::Velocity};
+use crate::collisions::Collideable;
 
 use super::{
     environment::{self, Environment},
@@ -176,10 +176,6 @@ impl Level for NoHops {
     }
 }
 
-pub(super) struct LevelEleven;
-// gate starts hidden
-// must alternate left right inputs to progress along predetermined path to finish pipe
-
 #[derive(Default)]
 pub(super) struct OneShot {
     used_jump: bool,
@@ -212,7 +208,8 @@ pub(super) struct TryAgain {
 }
 impl Level for TryAgain {
     fn button_conditions_met(&mut self, player: &Player, environment: &Environment) -> bool {
-        let player_on_button: bool = !environment.button_pressed() && player.hit_box.collides_with(&environment::BUTTON_HIT_BOX);
+        let player_on_button: bool = !environment.button_pressed()
+            && player.hit_box.collides_with(&environment::BUTTON_HIT_BOX);
         let result: bool = !self.previous_frame_was_on_button && player_on_button;
         self.previous_frame_was_on_button = player_on_button;
 
@@ -222,7 +219,7 @@ impl Level for TryAgain {
     fn handle_button_press(&mut self, environment: &mut Environment) {
         const PRESSES_REQUIRED: usize = 5;
         environment.button_pressed();
-        
+
         self.button_hits += 1;
         if self.button_hits >= PRESSES_REQUIRED {
             environment.open_gate();
@@ -233,7 +230,6 @@ impl Level for TryAgain {
     fn handle_spike_collision(&mut self, player: &mut Player, environment: &mut Environment) {
         self.init_player(player);
         self.init_environment(environment);
-
         self.previous_frame_was_on_button = false;
         self.button_hits = 0;
     }
@@ -285,12 +281,24 @@ impl Level for Choppy {
                 0
             };
 
-            self.updates_in_air = if player.on_ground { 0 } else { self.updates_in_air + 1 };
+            self.updates_in_air = if player.on_ground {
+                0
+            } else {
+                self.updates_in_air + 1
+            };
             self.velocity_y
         } else {
             self.frames += 1;
             0
-        } 
+        }
+    }
+
+    fn handle_spike_collision(&mut self, player: &mut Player, environment: &mut Environment) {
+        self.updates_in_air = 0;
+        self.velocity_y = 0;
+        self.frames = 0;
+        self.init_player(player);
+        self.init_environment(environment);
     }
 }
 
@@ -310,11 +318,40 @@ pub(super) struct LevelEighteen;
 // one color makes you float up indefitely
 // other color pulls down like normal
 
-pub(super) struct LevelNineteen;
-// invisible wall preceeding "boot" up to the to most platform
+#[derive(Default)]
+pub(super) struct Patience {
+    frames: u32,
+}
 
-pub(super) struct LevelTwenty;
-// gate goes down periodically and closes back up
+impl Patience {
+    const FRAMES_CLOSED: u32 = 1000;
+    const FRAMES_OPENED: u32 = 100;
+}
+
+impl Level for Patience {
+    fn button_conditions_met(&mut self, _player: &Player, _environment: &Environment) -> bool {
+        self.frames += 1;
+        true
+    }
+
+    fn handle_button_press(&mut self, environment: &mut Environment) {
+        if environment.gate_opened() && self.frames >= Self::FRAMES_OPENED {
+            environment.close_gate();
+            environment.draw_gate();
+            self.frames = 0;
+        } else if !environment.gate_opened() && self.frames >= Self::FRAMES_CLOSED {
+            environment.open_gate();
+            environment.draw_gate();
+            self.frames = 0;
+        }
+    }
+
+    fn handle_spike_collision(&mut self, player: &mut Player, environment: &mut Environment) {
+        self.frames = 0;
+        self.init_player(player);
+        self.init_environment(environment);
+    }
+}
 
 pub(super) struct FakeGate;
 impl Level for FakeGate {
@@ -328,16 +365,13 @@ impl Level for FakeGate {
     }
 
     fn handle_button_press(&mut self, environment: &mut Environment) {
-        environment.press_button();       
+        environment.press_button();
     }
 }
 
-pub(super) struct LevelTwentyTwo;
-// gate closes after set time
-
 pub(super) struct Sacrifice;
 impl Level for Sacrifice {
-    fn button_conditions_met(&mut self, player: &Player, environment: &Environment) -> bool {
+    fn button_conditions_met(&mut self, _player: &Player, _environment: &Environment) -> bool {
         false
     }
 
