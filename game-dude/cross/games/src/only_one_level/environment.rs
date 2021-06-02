@@ -15,6 +15,9 @@ use stm32l4p5_hal::dma2d::Dma2d;
 pub(super) struct Environment<'a> {
     button_pressed: bool,
     gate_opened: bool,
+    walls_visible: bool,
+    button_visible: bool,
+    gate_visible: bool,
     dma2d: &'a Dma2d,
 }
 
@@ -23,6 +26,9 @@ impl<'a> Environment<'a> {
         Environment {
             button_pressed: false,
             gate_opened: false,
+            walls_visible: true,
+            button_visible: true,
+            gate_visible: true,
             dma2d,
         }
     }
@@ -51,61 +57,85 @@ impl<'a> Environment<'a> {
         self.gate_opened = false;
     }
 
+    pub(super) fn hide_walls(&mut self) {
+        self.walls_visible = false;
+    }
+
+    pub(super) fn hide_gate(&mut self) {
+        self.gate_visible = false;
+    }
+
+    pub(super) fn hide_button(&mut self) {
+        self.button_visible = false;
+    }
+
     pub(super) fn draw_walls_and_spikes(&self) {
-        self.dma2d.draw_rgb8_image(
-            OnlyLevelEnvironmentImage.data_address(),
-            0,
-            0,
-            OnlyLevelEnvironmentImage::WIDTH,
-            OnlyLevelEnvironmentImage::HEIGHT,
-        );
+        if self.walls_visible {
+            self.dma2d.draw_rgb8_image(
+                OnlyLevelEnvironmentImage.data_address(),
+                0,
+                0,
+                OnlyLevelEnvironmentImage::WIDTH,
+                OnlyLevelEnvironmentImage::HEIGHT,
+            );    
+        } else {
+            self.dma2d.fill_background(
+                0xff_ff_ff_ff,
+                lcd::SCREEN_WIDTH_U16 / 4,
+                lcd::SCREEN_HEIGHT_U16,
+            );
+        }
     }
 
     pub(super) fn draw_button(&self) {
-        self.dma2d.draw_rgb8_image(
-            if self.button_pressed {
-                OnlyLevelButtonPressedImage.data_address()
-            } else {
-                OnlyLevelButtonImage.data_address()
-            },
-            BUTTON_HIT_BOX.top_left.x as u32 + 1, 
-            BUTTON_HIT_BOX.top_left.y as u32 + 1, 
-            OnlyLevelButtonImage::WIDTH,
-            OnlyLevelButtonImage::HEIGHT
-        );
+        if self.button_visible {
+            self.dma2d.draw_rgb8_image(
+                if self.button_pressed {
+                    OnlyLevelButtonPressedImage.data_address()
+                } else {
+                    OnlyLevelButtonImage.data_address()
+                },
+                BUTTON_HIT_BOX.top_left.x as u32 + 1,
+                BUTTON_HIT_BOX.top_left.y as u32 + 1,
+                OnlyLevelButtonImage::WIDTH,
+                OnlyLevelButtonImage::HEIGHT,
+            );
+        }
     }
-        
+
     pub(super) fn draw_gate(&self) {
-        self.dma2d.draw_rgb8_image(
-            if self.gate_opened {
-                OnlyLevelGateHiddenImage.data_address()
-            } else {
-                OnlyLevelGateImage.data_address()
-            },
-            GATE_TOP_LEFT.x as u32, 
-            GATE_TOP_LEFT.y as u32, 
-            OnlyLevelGateImage::WIDTH, 
-            OnlyLevelGateImage::HEIGHT
-        );
+        if self.gate_visible {
+            self.dma2d.draw_rgb8_image(
+                if self.gate_opened {
+                    OnlyLevelGateHiddenImage.data_address()
+                } else {
+                    OnlyLevelGateImage.data_address()
+                },
+                GATE_TOP_LEFT.x as u32,
+                GATE_TOP_LEFT.y as u32,
+                OnlyLevelGateImage::WIDTH,
+                OnlyLevelGateImage::HEIGHT,
+            );
+        }
     }
 
     pub(super) fn draw_pipes(&self) {
         self.dma2d.draw_rgb8_image(
-            OnlyLevelFinishPipeImage.data_address(), 
-            FINISH_PIPE_TOP_LEFT.x as u32, 
-            FINISH_PIPE_TOP_LEFT.y as u32, 
-            OnlyLevelFinishPipeImage::WIDTH, 
-            OnlyLevelFinishPipeImage::HEIGHT
+            OnlyLevelFinishPipeImage.data_address(),
+            FINISH_PIPE_TOP_LEFT.x as u32,
+            FINISH_PIPE_TOP_LEFT.y as u32,
+            OnlyLevelFinishPipeImage::WIDTH,
+            OnlyLevelFinishPipeImage::HEIGHT,
         );
 
         self.dma2d.draw_rgb8_image(
-            OnlyLevelStartPipeImage.data_address(), 
-            START_PIPE_TOP_LEFT.x as u32, 
-            START_PIPE_TOP_LEFT.y as u32, 
-            OnlyLevelStartPipeImage::WIDTH, 
-            OnlyLevelStartPipeImage::HEIGHT
+            OnlyLevelStartPipeImage.data_address(),
+            START_PIPE_TOP_LEFT.x as u32,
+            START_PIPE_TOP_LEFT.y as u32,
+            OnlyLevelStartPipeImage::WIDTH,
+            OnlyLevelStartPipeImage::HEIGHT,
         );
-    }        
+    }
 }
 
 const SPAWN_TOP_MIDDLE: Position = Position { x: 74, y: 91 };
