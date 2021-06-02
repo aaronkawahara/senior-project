@@ -7,8 +7,6 @@ use super::{
 
 use board::input::Inputs;
 
-pub(super) const LAST_LEVEL: usize = 12;
-
 pub(super) trait Level {
     fn init_environment(&self, environment: &mut Environment) {
         environment.draw_walls_and_spikes();
@@ -317,5 +315,17 @@ pub(super) struct LevelTwentyOne;
 pub(super) struct LevelTwentyTwo;
 // gate closes after set time
 
-// ideas:
-// die a certain number of times to hide gate
+pub(super) struct Sacrifice;
+impl Level for Sacrifice {
+    fn button_conditions_met(&mut self, player: &Player, environment: &Environment) -> bool {
+        false
+    }
+
+    fn handle_spike_collision(&mut self, player: &mut Player, environment: &mut Environment) {
+        self.init_environment(environment);
+        self.init_player(player);
+        environment.press_button();
+        environment.open_gate();
+        environment.draw_gate();
+    }
+}
