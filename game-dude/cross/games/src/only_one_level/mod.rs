@@ -14,16 +14,17 @@ use stm32l4p5_hal::dma2d::Dma2d;
 
 pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, wait_for_vsync: fn() -> ()) -> u32 {
     rng::init();
-    let mut level: usize = 5;
+    let mut level: usize = 11;
+    let mut score: u32 = 0;
 
     while level <= levels::LAST_LEVEL {
-        match level {
+        score += match level {
             1 => OnlyLevel::new(dma2d, levels::Normal).play(input, wait_for_vsync),
             2 => OnlyLevel::new(dma2d, levels::InvertedControls).play(input, wait_for_vsync),
             3 => OnlyLevel::new(dma2d, levels::OpenGate).play(input, wait_for_vsync),
             4 => OnlyLevel::new(dma2d, levels::Floaty).play(input, wait_for_vsync),
-            5 => OnlyLevel::new(dma2d, levels::BouncyWalls).play(input, wait_for_vsync),
-            6 => OnlyLevel::new(dma2d, levels::BouncySpikes).play(input, wait_for_vsync),
+            5 => OnlyLevel::new(dma2d, levels::BouncyWalls).play(input, wait_for_vsync), // not working
+            6 => OnlyLevel::new(dma2d, levels::BouncySpikes).play(input, wait_for_vsync), // not working - not enough bounce + only works on ground spikes?
             7 => OnlyLevel::new(dma2d, levels::HeadWind).play(input, wait_for_vsync),
             8 => OnlyLevel::new(dma2d, levels::NoRegrets).play(input, wait_for_vsync),
             9 => OnlyLevel::new(dma2d, levels::NoHops).play(input, wait_for_vsync),
@@ -31,7 +32,7 @@ pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, wait_for_vsync: fn() -> ()
             11 => OnlyLevel::new(dma2d, levels::TryAgain::default()).play(input, wait_for_vsync),
             12 => OnlyLevel::new(dma2d, levels::DoYouRemember).play(input, wait_for_vsync),
             _ => panic!("current level exceeds intended limit"),
-        }
+        };
 
         level += 1;
     }
@@ -42,7 +43,7 @@ pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, wait_for_vsync: fn() -> ()
         lcd::SCREEN_HEIGHT_U16,
     );
 
-    0
+    score
 }
 
 struct OnlyLevel<'d, L: Level> {
@@ -65,20 +66,25 @@ impl<'d, L: Level> OnlyLevel<'d, L> {
         }
     }
 
-    pub fn play(&mut self, input: &mut Inputs, wait_for_vsync: fn() -> ()) {
+    pub fn play(&mut self, input: &mut Inputs, wait_for_vsync: fn() -> ()) -> u32{
+        let mut score: u32 = 0;
+
         while !self.process_frame(input) {
+            score += 1;
             wait_for_vsync();
         }
+
+        score
     }
 
     pub fn process_frame(&mut self, input: &mut Inputs) -> bool {
-        self.environment.draw_button();
         let old_hit_box: BoundingBox = self.player.hit_box;
         self.player.erase_image();
         self.player.velocity.x = self.level.calculate_player_vx(input, &self.player);
         self.player.velocity.y = self.level.calculate_player_vy(input, &self.player);
         self.player.hit_box.translate(&self.player.velocity);
         self.player.on_ground = false;
+        self.environment.draw_button();
 
         for wall in &environment::WALL_HIT_BOXES {
             if let Some(collision_location) = self
