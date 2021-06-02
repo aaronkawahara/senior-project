@@ -52,7 +52,7 @@ pub(super) trait Level {
         }
     }
 
-    fn button_conditions_met(&self, player: &Player, environment: &Environment) -> bool {
+    fn button_conditions_met(&mut self, player: &Player, environment: &Environment) -> bool {
         !environment.button_pressed() && player.hit_box.collides_with(&environment::BUTTON_HIT_BOX)
     }
 
@@ -62,7 +62,7 @@ pub(super) trait Level {
         environment.draw_gate();
     }
 
-    fn handle_spike_collision(&self, player: &mut Player, environment: &mut Environment) {
+    fn handle_spike_collision(&mut self, player: &mut Player, environment: &mut Environment) {
         self.init_player(player);
         self.init_environment(environment);
     }
@@ -155,7 +155,7 @@ impl Level for BouncySpikes {
         }
     }
 
-    fn handle_spike_collision(&self, player: &mut Player, _environment: &mut Environment) {
+    fn handle_spike_collision(&mut self, player: &mut Player, _environment: &mut Environment) {
         const BOUNCE_SPEED: i32 = -16;
         player.velocity.x = 0;
         player.velocity.y = BOUNCE_SPEED;
@@ -235,22 +235,45 @@ impl Level for OneShot {
             player.calculate_fall_speed()
         }
     }
+
+    fn handle_spike_collision(&mut self, player: &mut Player, environment: &mut Environment) {
+        self.used_jump = false;
+        self.init_player(player);
+        self.init_environment(environment);
+    }
 }
 
 #[derive(Default)]
 pub(super) struct TryAgain {
+    previous_frame_was_on_button: bool,
     button_hits: usize,
 }
 impl Level for TryAgain {
+    fn button_conditions_met(&mut self, player: &Player, environment: &Environment) -> bool {
+        let player_on_button: bool = !environment.button_pressed() && player.hit_box.collides_with(&environment::BUTTON_HIT_BOX);
+        let result: bool = !self.previous_frame_was_on_button && player_on_button;
+        self.previous_frame_was_on_button = player_on_button;
+
+        result
+    }
+
     fn handle_button_press(&mut self, environment: &mut Environment) {
         const PRESSES_REQUIRED: usize = 5;
         environment.button_pressed();
-
+        
         self.button_hits += 1;
         if self.button_hits >= PRESSES_REQUIRED {
             environment.open_gate();
             environment.draw_gate();
         }
+    }
+
+    fn handle_spike_collision(&mut self, player: &mut Player, environment: &mut Environment) {
+        self.init_player(player);
+        self.init_environment(environment);
+
+        self.previous_frame_was_on_button = false;
+        self.button_hits = 0;
     }
 }
 
@@ -268,6 +291,10 @@ pub(super) struct LevelSixteen;
 pub(super) struct DoYouRemember;
 impl Level for DoYouRemember {
     fn init_environment(&self, environment: &mut Environment) {
+        environment.hide_walls();
+        environment.hide_gate();
+        environment.hide_button();
+        environment.draw_walls_and_spikes();
         environment.draw_pipes();
     }
 }
