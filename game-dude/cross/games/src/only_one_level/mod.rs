@@ -13,9 +13,9 @@ use board::input::Inputs;
 use stm32l4p5_hal::dma2d::Dma2d;
 
 pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, wait_for_vsync: fn() -> ()) -> u32 {
-    const LAST_LEVEL: usize = 12;
+    const LAST_LEVEL: usize = 14;
     rng::init();
-    let mut level: usize = 7;
+    let mut level: usize = 13;
     let mut score: u32 = 0;
 
     while level <= LAST_LEVEL {
@@ -32,6 +32,7 @@ pub(crate) fn play(input: &mut Inputs, dma2d: &Dma2d, wait_for_vsync: fn() -> ()
             10 => OnlyLevel::new(dma2d, levels::TryAgain::default()).play(input, wait_for_vsync),
             11 => OnlyLevel::new(dma2d, levels::DoYouRemember).play(input, wait_for_vsync),
             12 => OnlyLevel::new(dma2d, levels::Sacrifice).play(input, wait_for_vsync),
+            13 => OnlyLevel::new(dma2d, levels::FakeGate).play(input, wait_for_vsync),
             LAST_LEVEL => OnlyLevel::new(dma2d, levels::Normal).play(input, wait_for_vsync),
             _ => panic!("current level exceeds intended limit"),
         };

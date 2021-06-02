@@ -316,9 +316,21 @@ pub(super) struct LevelNineteen;
 pub(super) struct LevelTwenty;
 // gate goes down periodically and closes back up
 
-pub(super) struct LevelTwentyOne;
-// gate does not have hit box
-// button does not lower gate
+pub(super) struct FakeGate;
+impl Level for FakeGate {
+    fn init_environment(&self, environment: &mut Environment) {
+        environment.draw_walls_and_spikes();
+        environment.release_button();
+        environment.draw_button();
+        environment.close_gate();
+        environment.draw_gate();
+        environment.open_gate();
+    }
+
+    fn handle_button_press(&mut self, environment: &mut Environment) {
+        environment.press_button();       
+    }
+}
 
 pub(super) struct LevelTwentyTwo;
 // gate closes after set time
