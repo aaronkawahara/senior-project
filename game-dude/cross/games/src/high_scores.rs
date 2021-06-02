@@ -2,13 +2,13 @@ const HIGH_SCORES_SAVED: usize = 3;
 
 // #[used]
 // #[link_section = ".square_field_high_score_table"]
-pub static mut SQUARE_FIELD_HIGH_SCORES: HighScoreTable<u32> = 
+pub static mut SQUARE_FIELD_HIGH_SCORES: HighScoreTable<u32> =
     HighScoreTable::<u32>::new(SortOrder::Descending);
 // pub static mut SQUARE_FIELD_HIGH_SCORES: *mut HighScoreTable<u32> = 0x80ffc00_u32 as *mut HighScoreTable<u32>;
 
 // #[used]
 // #[link_section = ".only_level_high_score_table"]
-pub static mut ONLY_LEVEL_HIGH_SCORES: HighScoreTable<u32> = 
+pub static mut ONLY_LEVEL_HIGH_SCORES: HighScoreTable<u32> =
     HighScoreTable::<u32>::new(SortOrder::Ascending);
 // pub static mut ONLY_LEVEL_HIGH_SCORES: *mut HighScoreTable<u32> = 0x80ffc40_u32 as *mut HighScoreTable<u32>;
 
@@ -26,9 +26,9 @@ impl<S: ScoreConstraints> HighScoreTable<S> {
     }
 
     pub fn is_initialized(&self) -> bool {
-        self.entries[0].initials[0].is_ascii_uppercase() &&
-        self.entries[0].initials[1].is_ascii_uppercase() &&
-        self.entries[0].initials[2].is_ascii_uppercase()
+        self.entries[0].initials[0].is_ascii_uppercase()
+            && self.entries[0].initials[1].is_ascii_uppercase()
+            && self.entries[0].initials[2].is_ascii_uppercase()
     }
 
     pub fn initialize(&mut self, sort_by: SortOrder) {
@@ -37,16 +37,22 @@ impl<S: ScoreConstraints> HighScoreTable<S> {
     }
 
     pub fn is_new_high_score(&self, new_score: S) -> bool {
-        self.sort_by
-            .comes_before(new_score, self.entries.last().unwrap().score)
+        let score: S = self.entries.last().unwrap().score;
+
+        if score == S::DEFAULT {
+            true
+        } else {
+            self.sort_by.comes_before(new_score, score)
+        }
     }
 
     pub fn insert_new_high_score(&mut self, entry: Entry<S>) {
         let mut i: usize = 0;
 
-        while self
-            .sort_by
-            .comes_before(self.entries[i].score(), entry.score())
+        while self.entries[i].score() != S::DEFAULT
+            && self
+                .sort_by
+                .comes_before(self.entries[i].score(), entry.score())
         {
             i += 1;
         }
