@@ -2,10 +2,28 @@ MEMORY
 {
   /* NOTE K = KiBi = 1024 bytes */
   /* TODO Adjust these memory regions to match your device memory layout */
-  FLASH : ORIGIN = 0x08000000, LENGTH = 1024K 
+  FLASH : ORIGIN = 0x08000000, LENGTH = 1023K 
+  /* PERSISTENT_DATA (w) : ORIGIN = 0x080FFC00, LENGTH = 1K */
   RAM : ORIGIN = 0x20000000, LENGTH = 320K
 }
+/*
+SECTIONS
+{
+   . = ORIGIN(PERSISTENT_DATA);
+   .square_field_high_score_table (NOLOAD) : ALIGN(32)
+   {
+      *(.square_field_high_score_table)
+      . = ALIGN(32);
+   } >PERSISTENT_DATA
 
+   .only_level_high_score_table (NOLOAD) : ALIGN(32)
+   {
+      *(.only_level_high_score_table)
+      . = ALIGN(32);
+   } >PERSISTENT_DATA
+
+} INSERT AFTER .rodata
+*/
 /* This is where the call stack will be allocated. */
 /* The stack is of the full descending type. */
 /* You may want to use this variable to locate the call stack and static
@@ -17,7 +35,7 @@ MEMORY
    section */
 /* This is required only on microcontrollers that store some configuration right
    after the vector table */
-/* _stext = ORIGIN(FLASH) + 0x400; */
+/* _stext = ORIGIN(FLASH) + 0x468; */
 
 /* Size of the heap (in bytes) */
 /* _heap_size = 1024; */
