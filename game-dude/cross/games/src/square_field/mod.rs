@@ -1,20 +1,27 @@
+mod color_schemes;
+mod player;
 mod zones;
 
 use crate::collisions::{BoundingBox, Collideable};
-use crate::common::{MovingObject, Position, Velocity};
+use crate::common::{DiscreteSelection, MovingObject, Position, Velocity};
 use crate::images::SimpleImage;
 use crate::images::{PlayerImage, SquareImage};
 use crate::rng;
+use crate::square_field::zones::EndZone;
 
+use player::Player;
 use board::input::Inputs;
 use stm32l4p5_hal::dma2d::Dma2d;
 use zones::Zones;
+
+use self::color_schemes::ColorSchemes;
+use self::zones::TransitionZone;
 
 const BACKGROUND_COLOR: u32 = 0xff_ff_ff_ff;
 const QUARTER_WIDTH: u16 = 120;
 
 pub fn play(input: &mut Inputs, dma2d: &Dma2d, wait_for_vsync: fn() -> ()) -> u32 {
-    let mut square_field = SquareField::new();
+    let mut square_field = SquareField::new(dma2d);
     let mut game_over = false;
     rng::init();
 
@@ -28,25 +35,17 @@ pub fn play(input: &mut Inputs, dma2d: &Dma2d, wait_for_vsync: fn() -> ()) -> u3
 }
 
 pub(super) type Square = MovingObject<SquareImage>;
-pub(super) type Player = MovingObject<PlayerImage>;
 pub(super) type Field = [Square; SquareField::TOTAL_SQUARES as usize];
 
-trait MovesOnInput {
-    const MOVEMENT_SPEED: i32;
-}
-
-impl MovesOnInput for Player {
-    const MOVEMENT_SPEED: i32 = 15;
-}
-
-pub(super) struct SquareField {
+pub(super) struct SquareField<'a> {
     squares: Field,
-    player: Player,
+    player: Player<'a>,
     score: u32,
     zone: Zones,
+    color_scheme: ColorSchemes,
 }
 
-impl SquareField {
+impl<'a> SquareField<'a> {
     pub(super) const X_MIN: i32 = -lcd::SCREEN_WIDTH_I32;
     pub(super) const X_MAX: i32 = lcd::SCREEN_WIDTH_I32 * 2;
     pub(super) const TOTAL_SQUARES: u16 = Self::ROWS * Self::SQUARES_PER_ROW;
@@ -54,21 +53,10 @@ impl SquareField {
     pub(super) const ROWS: u16 = lcd::SCREEN_HEIGHT_U16 / Self::ROW_SPACE + 2; // 1 for rounding up and 1 for smoothness
     pub(super) const ROW_SPACE: u16 = 2 * SquareImage::HEIGHT;
 
-    pub fn new() -> Self {
+    pub fn new(dma2d: &'a Dma2d) -> Self {
         let square_hit_box = BoundingBox::new(
             Position::new(0, 0),
             Position::new(i32::from(SquareImage::WIDTH), i32::from(SquareImage::HEIGHT)),
-        );
-
-        let px: i32 = lcd::SCREEN_WIDTH_I32 / 2 - i32::from(PlayerImage::WIDTH) / 2;
-        let py: i32 = lcd::SCREEN_HEIGHT_I32 - 10 - i32::from(PlayerImage::HEIGHT);
-
-        let player_hit_box = BoundingBox::new(
-            Position::new(px, py),
-            Position::new(
-                px + i32::from(PlayerImage::WIDTH),
-                py + i32::from(PlayerImage::HEIGHT),
-            ),
         );
 
         let mut squares: Field = [Square::new(square_hit_box, Velocity::default(), SquareImage);
@@ -78,14 +66,15 @@ impl SquareField {
 
         SquareField {
             squares,
-            player: Player::new(player_hit_box, Velocity::default(), PlayerImage),
+            player: Player::new(dma2d),
             score: 0,
             zone,
+            color_scheme: ColorSchemes::default(),
         }
     }
 
     pub fn process_frame(&mut self, input: &mut Inputs, dma2d: &Dma2d) -> bool {
-        dma2d.fill_background(BACKGROUND_COLOR, QUARTER_WIDTH, lcd::SCREEN_HEIGHT_U16);
+        self.color_scheme.fill_background(dma2d);
 
         let mut game_over = false;
 
@@ -97,13 +86,7 @@ impl SquareField {
 
         let vy: i32 = self.zone.speed();
 
-        dma2d.draw_rgb8_image(
-            self.player.image.data_address(),
-            self.player.hit_box.top_left.x as u32,
-            self.player.hit_box.top_left.y as u32,
-            PlayerImage::WIDTH,
-            PlayerImage::HEIGHT,
-        );
+        self.player.draw(self.color_scheme);
 
         for square in &mut self.squares {
             if square.hit_box.collides_with(&self.player.hit_box) {
@@ -159,11 +142,20 @@ impl SquareField {
 
         self.score += vy as u32;
 
-        let zone = core::mem::take(&mut self.zone);
-        if let Some(new_zone) = zone.next_zone(self.score, &mut self.squares) {
-            self.zone = new_zone;
-        } else {
-            game_over = true;
+        if self.zone.passed_zone(self.score) {
+            let zone = core::mem::take(&mut self.zone);
+
+            if let Some(new_zone) = zone.next_zone(&mut self.squares) {
+                self.zone = new_zone;
+
+                if self.score > 2 * TransitionZone::TRANSITION_LENGTH 
+                    && matches!(self.zone, Zones::Transition(_))
+                {
+                    self.color_scheme = self.color_scheme.next();
+                }
+            } else {
+                game_over = true;
+            }
         }
 
         game_over
