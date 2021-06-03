@@ -1,16 +1,15 @@
 mod color_schemes;
 mod player;
+mod square;
 mod zones;
 
 use crate::collisions::{BoundingBox, Collideable};
-use crate::common::{DiscreteSelection, MovingObject, Position, Velocity};
-use crate::images::SimpleImage;
-use crate::images::{PlayerImage, SquareImage};
+use crate::common::{DiscreteSelection, Position};
 use crate::rng;
-use crate::square_field::zones::EndZone;
 
-use player::Player;
 use board::input::Inputs;
+use player::Player;
+use square::Square;
 use stm32l4p5_hal::dma2d::Dma2d;
 use zones::Zones;
 
@@ -34,11 +33,10 @@ pub fn play(input: &mut Inputs, dma2d: &Dma2d, wait_for_vsync: fn() -> ()) -> u3
     square_field.score
 }
 
-pub(super) type Square = MovingObject<SquareImage>;
-pub(super) type Field = [Square; SquareField::TOTAL_SQUARES as usize];
+pub(super) type Field<'a> = [Square<'a>; SquareField::TOTAL_SQUARES as usize];
 
 pub(super) struct SquareField<'a> {
-    squares: Field,
+    squares: Field<'a>,
     player: Player<'a>,
     score: u32,
     zone: Zones,
@@ -51,16 +49,10 @@ impl<'a> SquareField<'a> {
     pub(super) const TOTAL_SQUARES: u16 = Self::ROWS * Self::SQUARES_PER_ROW;
     pub(super) const SQUARES_PER_ROW: u16 = 4;
     pub(super) const ROWS: u16 = lcd::SCREEN_HEIGHT_U16 / Self::ROW_SPACE + 2; // 1 for rounding up and 1 for smoothness
-    pub(super) const ROW_SPACE: u16 = 2 * SquareImage::HEIGHT;
+    pub(super) const ROW_SPACE: u16 = 2 * Square::HEIGHT;
 
     pub fn new(dma2d: &'a Dma2d) -> Self {
-        let square_hit_box = BoundingBox::new(
-            Position::new(0, 0),
-            Position::new(i32::from(SquareImage::WIDTH), i32::from(SquareImage::HEIGHT)),
-        );
-
-        let mut squares: Field = [Square::new(square_hit_box, Velocity::default(), SquareImage);
-            Self::TOTAL_SQUARES as usize];
+        let mut squares: Field = [Square::new(dma2d); Self::TOTAL_SQUARES as usize];
 
         let zone: Zones = Zones::init_start_zone(&mut squares);
 
@@ -94,43 +86,12 @@ impl<'a> SquareField<'a> {
                 break;
             }
 
-            square.set_velocity(Velocity::new(vx, vy));
+            square.velocity.x = vx;
+            square.velocity.y = vy;
             square.hit_box.translate(&square.velocity);
 
             if Self::object_on_screen(&square.hit_box) {
-                // TODO refactor the cropping logic to common or collisionss
-                let cropped_box = BoundingBox::new(
-                    Position::new(
-                        square.hit_box.top_left.x.clamp(0, lcd::SCREEN_WIDTH_I32),
-                        square.hit_box.top_left.y.clamp(0, lcd::SCREEN_HEIGHT_I32),
-                    ),
-                    Position::new(
-                        square
-                            .hit_box
-                            .bottom_right
-                            .x
-                            .clamp(0, lcd::SCREEN_WIDTH_I32),
-                        square
-                            .hit_box
-                            .bottom_right
-                            .y
-                            .clamp(0, lcd::SCREEN_HEIGHT_I32),
-                    ),
-                );
-
-                let cropped_offset = cropped_box.top_left - square.hit_box.top_left;
-
-                let cropped_address: u32 = square
-                    .image
-                    .data_address_offset(cropped_offset.x as u16, cropped_offset.y as u16);
-
-                dma2d.draw_rgb8_image(
-                    cropped_address,
-                    cropped_box.top_left.x as u32,
-                    cropped_box.top_left.y as u32,
-                    cropped_box.width() as u16,
-                    cropped_box.height() as u16,
-                );
+                square.draw(self.color_scheme);
             }
 
             if square.hit_box.top_left.y > lcd::SCREEN_HEIGHT_I32 {
@@ -148,7 +109,7 @@ impl<'a> SquareField<'a> {
             if let Some(new_zone) = zone.next_zone(&mut self.squares) {
                 self.zone = new_zone;
 
-                if self.score > 2 * TransitionZone::TRANSITION_LENGTH 
+                if self.score > 2 * TransitionZone::TRANSITION_LENGTH
                     && matches!(self.zone, Zones::Transition(_))
                 {
                     self.color_scheme = self.color_scheme.next();
@@ -177,7 +138,7 @@ impl<'a> SquareField<'a> {
                 .translate_to(&Position::new(Self::X_MIN, square.hit_box.top_left.y));
         } else if square.hit_box.bottom_right.x < Self::X_MIN {
             square.hit_box.translate_to(&Position::new(
-                Self::X_MAX - i32::from(SquareImage::WIDTH),
+                Self::X_MAX - i32::from(Square::WIDTH),
                 square.hit_box.top_left.y,
             ));
         }
