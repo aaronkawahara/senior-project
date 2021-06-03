@@ -17,7 +17,7 @@ impl Default for ColorSchemes {
 }
 
 impl ColorSchemes {
-    const NORMAL_BACKGROUND: u32 = 0x6D_6D_6D_6D;
+    const NORMAL_BACKGROUND: u32 = 0xff_ff_ff_ff;
     const NEON_BACKGROUND: u32 = 0x00_00_00_00_00;
     const MONOCHROME_BACKGROUND: u32 = 0xff_ff_ff_ff;
     const BRIGHT_BACKGROUND: u32 = 0xff_ff_ff_ff;
