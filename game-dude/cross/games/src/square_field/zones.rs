@@ -25,13 +25,21 @@ impl Zones {
         }
     }
 
-    pub fn next_zone(self, score: u32, squares: &mut Field) -> Option<Zones> {
+    pub fn next_zone(self, squares: &mut Field) -> Option<Zones> {
         match self {
-            Zones::Empty(z) if z.passed_zone(score) => Some(z.next_zone(squares)),
-            Zones::Transition(z) if z.passed_zone(score) => Some(z.next_zone(squares)),
-            Zones::Random(z) if z.passed_zone(score) => Some(z.next_zone(squares)),
+            Zones::Empty(z) => Some(z.next_zone(squares)),
+            Zones::Transition(z) => Some(z.next_zone(squares)),
+            Zones::Random(z) => Some(z.next_zone(squares)),
             Zones::End(_) => None,
-            zone => Some(zone),
+        }
+    }
+
+    pub fn passed_zone(&self, score: u32) -> bool {
+        match self {
+            Zones::Empty(z) => z.passed_zone(score),
+            Zones::Transition(z) => z.passed_zone(score),
+            Zones::Random(z) => z.passed_zone(score),
+            Zones::End(_) => false,
         }
     }
 
@@ -142,7 +150,7 @@ impl TransitionZone {
     const CORRAL_ROWS: i32 = (Self::RIGHT_WALL_START - Self::RIGHT_WALL_END) / Self::DX + 1;
     const RUNWAY_ROWS: i32 = SquareField::ROWS as i32;
     const TRANSITION_ROWS: i32 = Self::CORRAL_ROWS + Self::RUNWAY_ROWS;
-    const TRANSITION_LENGTH: u32 = Self::TRANSITION_ROWS as u32 * SquareField::ROW_SPACE as u32;
+    pub const TRANSITION_LENGTH: u32 = Self::TRANSITION_ROWS as u32 * SquareField::ROW_SPACE as u32;
 
     fn new(mut level_data: LevelData, zone_start: u32) -> Self {
         level_data.square_speed = Self::BASE_SPEED + (Self::SPEED_INCREMENT * level_data.level);
@@ -160,7 +168,8 @@ impl ZoneBehavior for TransitionZone {
     fn reposition_square(&mut self, square: &mut Square) {
         let x: i32 = match self.curr_square {
             0 => {
-                Self::DX * (Self::CORRAL_ROWS - self.rows_passed).clamp(0, i32::from(SquareField::ROWS))
+                Self::DX
+                    * (Self::CORRAL_ROWS - self.rows_passed).clamp(0, i32::from(SquareField::ROWS))
             }
             1 => {
                 -Self::DX
@@ -266,7 +275,8 @@ impl ZoneBehavior for RandomizedZone {
 
     fn setup(self, squares: &mut Field) -> Self {
         for row in 0..i32::from(SquareField::ROWS) {
-            let y: i32 = -(i32::from(SquareImage::HEIGHT) + i32::from(SquareField::ROW_SPACE) * row);
+            let y: i32 =
+                -(i32::from(SquareImage::HEIGHT) + i32::from(SquareField::ROW_SPACE) * row);
 
             for square in 0..SquareField::SQUARES_PER_ROW {
                 let x: i32 = rng::gen_range(SquareField::X_MIN..SquareField::X_MAX);
