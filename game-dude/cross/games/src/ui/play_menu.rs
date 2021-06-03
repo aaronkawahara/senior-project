@@ -1,11 +1,10 @@
+use crate::common::DiscreteSelection;
 use crate::images;
 use crate::images::SimpleImage;
 use crate::Games;
 
 use board::input::Inputs;
 use stm32l4p5_hal::dma2d::Dma2d;
-
-use super::DiscreteSelection;
 
 pub(crate) fn get_game_selection(
     input: &mut Inputs,

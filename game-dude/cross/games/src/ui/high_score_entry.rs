@@ -1,11 +1,11 @@
 use board::input::Inputs;
 use stm32l4p5_hal::dma2d::Dma2d;
 
+use crate::common::DiscreteSelection;
 use crate::high_scores::{Entry, Initials, ONLY_LEVEL_HIGH_SCORES, SQUARE_FIELD_HIGH_SCORES};
 use crate::Games;
 
 use super::text::letters::{self, TextBox};
-use super::DiscreteSelection;
 
 const NEW_HIGH_SCORE_STR: &str = "NEW HIGH SCORE";
 const NEW_HIGH_SCORE: TextBox = TextBox {

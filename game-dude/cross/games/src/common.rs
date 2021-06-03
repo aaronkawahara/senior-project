@@ -78,3 +78,7 @@ impl<I: SimpleImage> MovingObject<I> {
         self.velocity = velocity;
     }
 }
+pub trait DiscreteSelection {
+    fn next(self) -> Self;
+    fn previous(self) -> Self;
+}

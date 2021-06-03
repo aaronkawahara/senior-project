@@ -4,7 +4,3 @@ pub(super) mod play_menu;
 pub(super) mod score;
 pub(super) mod text;
 
-pub(super) trait DiscreteSelection {
-    fn next(self) -> Self;
-    fn previous(self) -> Self;
-}
