@@ -66,26 +66,12 @@ impl<'a> Player<'a> {
             ));
             self.velocity.x = 0;
         } else if self.velocity.y > 0 {
-            // self.velocity.y = -(self.velocity.y * self.physics.bounce_factor_tenths) / 10;
-            // let distance_to_ground = other_hit_box.top_left.y - old_hit_box.bottom_right.y;
-            // let bounce_height = distance_to_ground + self.velocity.y;
-            // collision_location.translate(&Position::new(
-            //     0,
-            //     other_hit_box.top_left.y - collision_location.bottom_right.y + bounce_height,
-            // ));
             collision_location.translate(&Position::new(
                 0,
                 other_hit_box.top_left.y - collision_location.bottom_right.y,
             ));
             self.velocity.y = 0;
         } else if self.velocity.y < 0 {
-            // self.velocity.y = -(self.velocity.y * self.physics.bounce_factor_tenths) / 10;
-            // let distance_to_ceiling = other_hit_box.bottom_right.y - old_hit_box.top_left.y;
-            // let bounce_depth = distance_to_ceiling + self.velocity.y;
-            // collision_location.translate(&Position::new(
-            //     0,
-            //     other_hit_box.bottom_right.y - collision_location.top_left.y + bounce_depth,
-            // ));
             collision_location.translate(&Position::new(
                 0,
                 other_hit_box.bottom_right.y - collision_location.top_left.y,
@@ -135,7 +121,6 @@ pub(super) struct PlayerPhysics {
     pub(super) jump_speed: i32,
     pub(super) ground_speed: i32,
     pub(super) air_speed: i32,
-    pub(super) bounce_factor_tenths: i32,
 }
 
 impl PlayerPhysics {
@@ -145,7 +130,6 @@ impl PlayerPhysics {
     pub(super) const JUMP_SPEED: i32 = -8;
     pub(super) const GROUND_SPEED: i32 = 2;
     pub(super) const AIR_SPEED: i32 = 5;
-    pub(super) const BOUNCE_FACTOR_TENTHS: i32 = 0;
 }
 
 impl Default for PlayerPhysics {
@@ -157,7 +141,6 @@ impl Default for PlayerPhysics {
             jump_speed: Self::JUMP_SPEED,
             ground_speed: Self::GROUND_SPEED,
             air_speed: Self::AIR_SPEED,
-            bounce_factor_tenths: Self::BOUNCE_FACTOR_TENTHS,
         }
     }
 }

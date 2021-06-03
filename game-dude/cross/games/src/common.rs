@@ -1,5 +1,3 @@
-use crate::collisions::BoundingBox;
-use crate::images::SimpleImage;
 use core::ops::{Add, Sub};
 use defmt::{self, Format};
 
@@ -55,29 +53,6 @@ impl Sub for Position {
 
 pub type Velocity = Position;
 
-#[derive(Clone, Copy)]
-pub struct MovingObject<I>
-where
-    I: SimpleImage,
-{
-    pub(crate) hit_box: BoundingBox,
-    pub(crate) velocity: Velocity,
-    pub(crate) image: I,
-}
-
-impl<I: SimpleImage> MovingObject<I> {
-    pub fn new(hit_box: BoundingBox, velocity: Velocity, image: I) -> Self {
-        MovingObject {
-            hit_box,
-            velocity,
-            image,
-        }
-    }
-
-    pub fn set_velocity(&mut self, velocity: Velocity) {
-        self.velocity = velocity;
-    }
-}
 pub trait DiscreteSelection {
     fn next(self) -> Self;
     fn previous(self) -> Self;

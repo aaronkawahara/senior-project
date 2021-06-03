@@ -313,11 +313,6 @@ impl Level for DoYouRemember {
     }
 }
 
-pub(super) struct LevelEighteen;
-// stripes throughout level
-// one color makes you float up indefitely
-// other color pulls down like normal
-
 #[derive(Default)]
 pub(super) struct Patience {
     frames: u32,
